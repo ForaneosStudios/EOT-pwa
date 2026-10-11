@@ -83,6 +83,57 @@ La vista principal prioriza la retroalimentación inmediata y la adaptabilidad d
 - **Estructuración Modular en JavaScript:** La interfaz se descompone en componentes funcionales y reutilizables de React (ej. `<CategoryList>`, `<ThreadView>`, `<PostReply>`).
 - **Diseño Adaptativo:** Se prescinde de hojas de estilo CSS tradicionales en favor de **Tailwind CSS**. Mediante clases de utilidad y sistemas de cuadrícula (Grid/Flexbox), la maquetación se ajusta fluidamente a cualquier resolución móvil o de escritorio.
 
+La interfaz visual refleja la atmósfera de fantasía oscura del juego, definida por un sistema de diseño estricto aplicable tanto en Figma como en Tailwind CSS.
+
+#### Paleta de Colores
+*   **Brand Colors (Protagonistas visuales):**
+    *   `Primary / Crimson`: `#9E2A2B` (Rojo carmesí para botones y barras de progreso).
+    *   `Secondary / Gold`: `#C8A97E` (Oro envejecido para iconos y bordes).
+*   **UI & Surface Colors (Atmósfera oscura):**
+    *   `Background / Void`: `#0C0808` (Negro profundo para el fondo de la pantalla y menú lateral).
+    *   `Surface / Panel`: `#1D1D1D` (Borgoña oscuro/cacao para tarjetas, foro y contenedores).
+*   **Text Colors (Tipografía legible):**
+    *   `Text High / Parchment`: `#E6D5B8` (Color pergamino principal para encabezados y lectura).
+    *   `Text Muted`: `#8C7D73` (Marrón/gris apagado para subtítulos y placeholders).
+    *   `White`: `#FFFFFF` (Para contrastes puros ocasionales).
+*   **State Colors (Colores funcionales):**
+    *   `Info`: `#2F80ED` | `Success`: `#27AE60` | `Warning`: `#E2B93B` | `Error`: `#EB5757`.
+
+#### Tipografía
+**Encabezados - Cinzel (Google Fonts)**
+*   **Heading 1:** 56 px | Line Height: 61.6 px *(Títulos de página principales, ej. "El Códice")*
+*   **Heading 2:** 48 px | Line Height: 52.8 px
+*   **Heading 3:** 40 px | Line Height: 44 px
+*   **Heading 4:** 32 px | Line Height: 35.2 px *(Títulos de secciones o modales)*
+*   **Heading 5:** 24 px | Line Height: 26.4 px *(Nombres de tarjetas de logros)*
+*   **Heading 6:** 20 px | Line Height: 22 px *(Opciones del menú lateral)*
+
+**Texto de Lectura - Inter (Google Fonts)**
+*   **Large Text (Bold/Regular):** 20 px | Line Height: 28 px
+*   **Medium Text (Bold/Regular):** 18 px | Line Height: 26 px
+*   **Normal Text (Bold/Regular):** 16 px | Line Height: 24 px
+*   **Small Text (Bold/Regular):** 14 px | Line Height: 22 px
+
+#### Sistema de Cuadrícula (Grid) y Espaciado
+*   **Desktop (1440px y 1024px):** 12 columnas | Gutter: 30px | Column width: 65px / 50px
+*   **Tablet (768px):** 8 columnas | Gutter: 24px | Column width: 88px
+*   **Mobile (320px):** 4 columnas | Gutter: 16px | Column width: 130px
+*   **Spacing Scale:** 8 px, 16 px, 24 px, 32 px, 40 px, 56 px, 72 px, 80 px, 96 px, 120 px.
+
+#### Componentes UI (Formas completamente rectangulares: **0px Corner Radius**)
+*   **Textfields (Campos de texto):** Fondo transparente. Bordes de 1px (`#8C7D73` inactivo, `#C8A97E` focus, `#27AE60` success, `#E2B93B` warning, `#9E2A2B` error). Labels en Cinzel (`#C8A97E` o `#E6D5B8`). Placeholders en Inter (`#8C7D73`), texto ingresado en Inter (`#E6D5B8`).
+*   **Dropdown:** Caja transparente, lista desplegada `#1D1D1D`. Opción activa fondo `#9E2A2B` con texto `#E6D5B8`.
+*   **Checkbox & Radio:** Checkbox inactivo borde `#8C7D73`, activo relleno `#9E2A2B` con check `#E6D5B8`. Radio inactivo borde `#8C7D73`, activo borde `#C8A97E` y centro `#9E2A2B`.
+*   **Toggle:** Fondo inactivo `#0C0808` (borde `#8C7D73`). Fondo activo `#9E2A2B` (deslizante `#C8A97E`).
+*   **Tabs:** Línea base `#8C7D73`. Tab activa: texto `#E6D5B8` y línea gruesa `#9E2A2B`. Tab inactiva: texto `#8C7D73`.
+*   **Pagination & Breadcrumbs:** Página/migaja actual destacada en `#9E2A2B`. Inactivas en `#8C7D73`.
+*   **Date Picker:** Día seleccionado como círculo de color `#9E2A2B`.
+*   **Buttons (Botones):** Todos con **0px Corner Radius** (iconos son cuadrados perfectos). 
+    *   *Primary:* Fondo `#9E2A2B`, texto `#E6D5B8`.
+    *   *Secondary:* Fondo `#C8A97E`, texto `#E6D5B8`.
+    *   *Tipografía:* Cinzel en MAYÚSCULAS.
+    *   *Outline:* Fondo transparente, bordes y texto en Crimson o Gold.
+
 ### 4. Flujo de Navegación e Interacción del Usuario
 
 El diagrama de flujo detalla la experiencia de usuario dentro de la PWA, estructurando los permisos de visualización y el ciclo de vida de la sesión:
@@ -96,6 +147,8 @@ El diagrama de flujo detalla la experiencia de usuario dentro de la PWA, estruct
 - **Interactuar en el Foro y Modo Offline (Caché):** Los usuarios autenticados pueden acceder al detalle del foro para responder a los hilos de la comunidad. Dado que tanto los foros como los logros provienen de la base de datos, el Service Worker intercepta estas consultas; si no hay internet, sirve los datos directamente desde la caché local para asegurar el acceso continuo a esta información.
 
 ## Documentación Visual
+
+- **Diseño UI/UX (Figma):** [Ver Primeras Pantallas y Style Guide](https://www.figma.com/design/sfKcOzBE74mSDr5pKc3yvF/Echoes-of-the-Throne-%E2%80%94-PWA-%7C-Primeras-pantallas?node-id=0-1&t=U6kaJztwZhtBkyTU-1) (Contiene los mockups de la aplicación y la guía de estilos completa).
 
 - **Esquema de Base de Datos:** [Ver diagrama `database_schema.png`](docs/database_schema.png) (Detalla las relaciones entre `users`, `achievements`, y la jerarquía de `categories`, `threads` y `posts`).
 - **Flujo de Navegación del Usuario:** [Ver diagrama `user_flow.png`](docs/user_flow.png) (Muestra la vista pública, el registro y la autenticación con JWT, la navegación privada y el modo offline).
