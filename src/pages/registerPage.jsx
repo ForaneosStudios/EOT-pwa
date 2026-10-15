@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import FormField from '../components/formField.jsx';
-import { registerUser } from '../services/authService.js';
+import { loginUser, registerUser } from '../services/authService.js';
 import { getApiErrorMessage } from '../services/apiClient.js';
 import { useOnlineStatus } from '../hooks/useOnlineStatus.js';
 
@@ -37,13 +37,13 @@ function validateAll(values) {
   );
 }
 
-function RegisterPage() {
+function RegisterPage({ onLogin }) {
   const [formValues, setFormValues] = useState(initialValues);
   const [formErrors, setFormErrors] = useState({});
   const [touchedFields, setTouchedFields] = useState({});
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState('');
-  const [isRegistered, setIsRegistered] = useState(false);
+  const [registeredUser, setRegisteredUser] = useState(null);
   const isOnline = useOnlineStatus();
 
   const handleChange = (event) => {
@@ -71,10 +71,12 @@ function RegisterPage() {
     setIsSubmitting(true);
     setSubmitError('');
     try {
-      await registerUser(formValues);
-      setIsRegistered(true);
+      const createdUser = await registerUser(formValues);
+      await loginUser({ email: createdUser.email, password: formValues.password });
+      setRegisteredUser(createdUser);
       setFormValues(initialValues);
       setTouchedFields({});
+      onLogin();
     } catch (error) {
       setSubmitError(getApiErrorMessage(error, 'No se pudo crear la cuenta.'));
     } finally {
@@ -131,7 +133,7 @@ function RegisterPage() {
                 {submitError}
               </p>
             )}
-            {isRegistered && (
+            {registeredUser && (
               <p role="status" className="border border-success px-3 py-2 font-body text-sm text-success">
                 Cuenta creada. Ya puedes iniciar sesión.
               </p>
@@ -140,9 +142,9 @@ function RegisterPage() {
 
           <p className="mt-6 text-center font-display text-sm text-parchment">
             ¿Ya tienes una cuenta?{' '}
-            <a href="/login" className="ml-1 uppercase text-parchment underline-offset-4 hover:text-gold hover:underline">
+            <button type="button" onClick={() => onLogin('login')} className="ml-1 cursor-pointer uppercase text-parchment underline-offset-4 hover:text-gold hover:underline">
               Iniciar sesión
-            </a>
+            </button>
           </p>
         </section>
       </div>

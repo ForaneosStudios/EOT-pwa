@@ -1,14 +1,21 @@
 import axios from 'axios';
 
 export const apiClient = axios.create({
-  baseURL: import.meta.env.VITE_API_BASE_URL,
+  baseURL: 'http://localhost:8080/api/v1',
   headers: { 'Content-Type': 'application/json' },
   timeout: 15000,
 });
 
 // TODO: devolver el JWT de la sesión actual de Supabase cuando se integre la autenticación.
 async function getAccessToken() {
-  return null;
+  const storedSession = localStorage.getItem('eot.session');
+  if (!storedSession) return null;
+
+  try {
+    return JSON.parse(storedSession).accessToken ?? null;
+  } catch {
+    return null;
+  }
 }
 
 apiClient.interceptors.request.use(async (requestConfig) => {

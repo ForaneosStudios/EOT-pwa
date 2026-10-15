@@ -26,7 +26,7 @@ const sections = [
   { icon: '☷', title: 'El Consejo de Almas', description: 'Conversaciones de la comunidad.' },
 ];
 
-function LandingPage() {
+function LandingPage({ user }) {
   return (
     <div className="flex min-h-screen flex-col bg-void md:flex-row">
       <Sidebar navItems={navItems} />
@@ -41,7 +41,7 @@ function LandingPage() {
 
           <div className="mt-6">
             <WelcomeCard
-              userName={exampleUser.userName}
+              userName={user?.username ?? exampleUser.userName}
               unlockedAchievements={exampleUser.unlockedAchievements}
               totalAchievements={exampleUser.totalAchievements}
             />
