@@ -1,1 +1,23 @@
 @import "tailwindcss";
+
+@theme {
+  --color-crimson: #9e2a2b;
+  --color-crimson-light: #a8323a;
+  --color-gold: #c8a97e;
+  --color-gold-dim: #6b5340;
+  --color-void: #0c0808;
+  --color-panel: #241b1c;
+  --color-panel-deep: #1b1415;
+  --color-parchment: #e6d5b8;
+  --color-muted: #8c7d73;
+  --color-success: #27ae60;
+  --color-warning: #e2b93b;
+  --color-error: #eb5757;
+
+  --font-display: "Cinzel", "Times New Roman", serif;
+  --font-body: "Inter", system-ui, sans-serif;
+}
+
+body {
+  @apply bg-void text-parchment font-body antialiased;
+}
