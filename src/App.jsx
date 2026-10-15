@@ -1,7 +1,7 @@
-import Login from "./pages/Login";
+import RegisterPage from './pages/registerPage.jsx'
 
 function App() {
-  return <Login />;
+  return <RegisterPage />
 }
 
-export default App;
+export default App
