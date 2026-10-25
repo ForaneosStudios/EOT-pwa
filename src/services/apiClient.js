@@ -1,6 +1,10 @@
 import axios from 'axios';
 import { supabase } from './supabase.js';
 
+export const AUTH_REQUIRED_EVENT = 'eot:auth-required';
+
+let refreshPromise = null;
+
 export const apiClient = axios.create({
   baseURL: import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080/api/v1',
   headers: { 'Content-Type': 'application/json' },
@@ -11,10 +15,57 @@ apiClient.interceptors.request.use(async (config) => {
   if (supabase) {
     const { data, error } = await supabase.auth.getSession();
     if (error) throw error;
-    if (data.session?.access_token) config.headers.Authorization = `Bearer ${data.session.access_token}`;
+    if (data.session?.access_token) {
+      config.headers.Authorization = `Bearer ${data.session.access_token}`;
+    }
   }
   return config;
 });
+
+async function refreshAccessToken() {
+  refreshPromise ??= supabase.auth.refreshSession()
+    .then(({ data, error }) => {
+      if (error) throw error;
+      if (!data.session?.access_token) throw new Error('No se pudo renovar la sesiÃ³n.');
+      return data.session.access_token;
+    })
+    .finally(() => {
+      refreshPromise = null;
+    });
+
+  return refreshPromise;
+}
+
+function notifyAuthenticationRequired() {
+  window.dispatchEvent(new CustomEvent(AUTH_REQUIRED_EVENT));
+}
+
+apiClient.interceptors.response.use(
+  (response) => response,
+  async (error) => {
+    const request = error.config;
+    if (!supabase || error.response?.status !== 401 || !request || request.authRetry) {
+      return Promise.reject(error);
+    }
+
+    request.authRetry = true;
+    try {
+      const { data } = await supabase.auth.getSession();
+      if (!data.session) {
+        notifyAuthenticationRequired();
+        return Promise.reject(error);
+      }
+
+      const accessToken = await refreshAccessToken();
+      request.headers.Authorization = `Bearer ${accessToken}`;
+      return apiClient(request);
+    } catch (refreshError) {
+      await supabase.auth.signOut({ scope: 'local' }).catch(() => {});
+      notifyAuthenticationRequired();
+      return Promise.reject(refreshError);
+    }
+  },
+);
 
 export function getApiErrorMessage(error, fallback = 'Ocurrió un error. Inténtalo de nuevo.') {
   if (error?.isAxiosError) {

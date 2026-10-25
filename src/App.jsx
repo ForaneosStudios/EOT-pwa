@@ -3,8 +3,14 @@ import LandingPage from './pages/landingPage.jsx';
 import LoginPage from './pages/loginPage.jsx';
 import RegisterPage from './pages/registerPage.jsx';
 import ConfirmationPage from './pages/confirmationPage.jsx';
-import { logoutUser, restoreUser, takeConfirmationResult, verifyConfirmation } from './services/authService.js';
-import { getApiErrorMessage } from './services/apiClient.js';
+import {
+  logoutUser,
+  restoreUser,
+  subscribeToAuthChanges,
+  takeConfirmationResult,
+  verifyConfirmation,
+} from './services/authService.js';
+import { AUTH_REQUIRED_EVENT, getApiErrorMessage } from './services/apiClient.js';
 
 // Read once, before any component renders or React Strict Mode repeats effects.
 const confirmationResult = takeConfirmationResult();
@@ -38,6 +44,22 @@ function App() {
       });
     }
     return () => { active = false; };
+  }, []);
+
+  useEffect(() => {
+    const requireLogin = () => {
+      setUser(null);
+      setMessage('Tu sesiÃ³n terminÃ³. Inicia sesiÃ³n nuevamente.');
+      setCurrentPage('login');
+    };
+    const unsubscribe = subscribeToAuthChanges((event) => {
+      if (event === 'SIGNED_OUT') requireLogin();
+    });
+    window.addEventListener(AUTH_REQUIRED_EVENT, requireLogin);
+    return () => {
+      unsubscribe();
+      window.removeEventListener(AUTH_REQUIRED_EVENT, requireLogin);
+    };
   }, []);
 
   const openLogin = () => {

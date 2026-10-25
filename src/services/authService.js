@@ -1,5 +1,5 @@
 import { apiClient } from './apiClient.js';
-import { requireSupabase } from './supabase.js';
+import { requireSupabase, supabase } from './supabase.js';
 
 const confirmationUrl = () => `${window.location.origin}/auth/confirm`;
 
@@ -50,6 +50,14 @@ export async function restoreUser() {
 export async function logoutUser() {
   const { error } = await requireSupabase().auth.signOut({ scope: 'local' });
   if (error) throw error;
+}
+
+export function subscribeToAuthChanges(listener) {
+  if (!supabase) return () => {};
+  const { data } = supabase.auth.onAuthStateChange((event) => {
+    listener(event);
+  });
+  return () => data.subscription.unsubscribe();
 }
 
 // Capture the one-use result before removing tokens from the browser address bar.
