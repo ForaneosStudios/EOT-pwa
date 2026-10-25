@@ -1,5 +1,33 @@
 # Echoes of the Throne - Cliente Web PWA
 
+## Autenticación con Supabase
+
+1. Copia `.env.example` a `.env.local`. Usa la URL y la clave **publishable** del
+   proyecto Supabase y la URL de la API Spring. Nunca coloques una clave secreta
+   o `service_role` en variables `VITE_`.
+2. En Supabase, configura Authentication → URL Configuration: establece el
+   origen de la aplicación y agrega la URL exacta de confirmación a Redirect
+   URLs. Para este entorno de ejemplo es `http://localhost:3000/auth/confirm`.
+   En producción utiliza la URL HTTPS real de la aplicación.
+3. Inicia el backend con el issuer de ese mismo proyecto y permite el origen del
+   frontend en `APP_CORS_ALLOWED_ORIGINS`. Inicia el frontend con:
+
+   ```powershell
+   npm install
+   npm run dev -- --port 3000 --strictPort
+   ```
+
+El registro solicita confirmación por correo si el proyecto la exige. La página
+`/auth/confirm` muestra el resultado y permite reenviar el enlace; el primer
+inicio de sesión crea el perfil de Spring usando el nombre elegido al registrarse.
+Si el nombre ya existe, el perfil no puede crearse automáticamente y el usuario
+necesita elegir otro o solicitar asistencia. La PWA usa exclusivamente la clave
+publicable, mientras Supabase gestiona los tokens de sesión.
+
+El enlace solo funciona en un navegador que pueda acceder al origen configurado:
+`localhost` siempre se refiere al propio dispositivo. La plantilla del correo
+se administra por separado en Supabase y no se cambia con este frontend.
+
 Repositorio principal para el cliente web de la comunidad, diseñado como una Aplicación Web Progresiva (PWA) utilizando React, Vite y Tailwind CSS.
 
 ## Propuesta de Arquitectura e Interfaz
