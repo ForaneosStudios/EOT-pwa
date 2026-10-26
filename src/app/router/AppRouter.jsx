@@ -12,19 +12,19 @@ function LoginRoute() {
   const navigate = useNavigate();
   const { state } = useLocation();
   const destination = typeof state?.from === 'string' && state.from.startsWith('/') && !state.from.startsWith('//') ? state.from : '/';
-  return <LoginPage message={message} onForgot={() => navigate('/auth/forgot-password')} onRegister={() => { setMessage(''); navigate('/register'); }} onLogin={(profile) => { setUser(profile); setMessage(''); navigate(destination, { replace: true }); }} />;
+  return <LoginPage message={message} onForgot={() => { void navigate('/auth/forgot-password'); }} onRegister={() => { setMessage(''); void navigate('/register'); }} onLogin={(profile) => { setUser(profile); setMessage(''); void navigate(destination, { replace: true }); }} />;
 }
 
 function RegisterRoute() {
   const { setUser, setMessage } = useAuth();
   const navigate = useNavigate();
-  return <RegisterPage onLogin={(profile) => { setUser(profile); navigate('/', { replace: true }); }} onOpenLogin={() => { setMessage(''); navigate('/login'); }} />;
+  return <RegisterPage onLogin={(profile) => { setUser(profile); void navigate('/', { replace: true }); }} onOpenLogin={() => { setMessage(''); void navigate('/login'); }} />;
 }
 
 function CallbackRoute({ recovery = false }) {
   const { callbackStatus, setMessage } = useAuth();
   const navigate = useNavigate();
-  const onLogin = () => { setMessage(''); navigate('/login', { replace: true }); };
+  const onLogin = () => { setMessage(''); void navigate('/login', { replace: true }); };
   if (recovery) return <PasswordPage recovery status={callbackStatus} onLogin={onLogin} />;
   return <ConfirmationPage status={callbackStatus} onLogin={onLogin} />;
 }
@@ -36,7 +36,7 @@ function HomeRoute() {
 
 function ForgotRoute() {
   const navigate = useNavigate();
-  return <PasswordPage onLogin={() => navigate('/login')} />;
+  return <PasswordPage onLogin={() => { void navigate('/login'); }} />;
 }
 
 export default function AppRouter() {

@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { AuthContext } from './authContext.js';
 import { AUTH_REQUIRED_EVENT, getApiErrorMessage } from '../../services/apiClient.js';
 import { logoutUser, restoreUser, subscribeToAuthChanges, takeConfirmationResult, verifyConfirmation } from '../../services/authService.js';
@@ -42,7 +42,7 @@ export function AuthProvider({ children }) {
     return () => { unsubscribe(); window.removeEventListener(AUTH_REQUIRED_EVENT, requireLogin); };
   }, []);
 
-  async function logout() {
+  const logout = useCallback(async () => {
     try {
       await logoutUser();
       setUser(null);
@@ -50,7 +50,9 @@ export function AuthProvider({ children }) {
     } catch (error) {
       setMessage(getApiErrorMessage(error, 'No se pudo cerrar la sesión. Inténtalo de nuevo.'));
     }
-  }
+  }, []);
 
-  return <AuthContext.Provider value={{ user, setUser, loading, message, setMessage, callbackStatus, logout }}>{children}</AuthContext.Provider>;
+  const value = useMemo(() => ({ user, setUser, loading, message, setMessage, callbackStatus, logout }),
+    [user, loading, message, callbackStatus, logout]);
+  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }
