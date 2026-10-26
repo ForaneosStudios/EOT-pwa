@@ -18,6 +18,10 @@
    npm run dev -- --port 3000 --strictPort
    ```
 
+   El servidor de desarrollo usa el puerto `3000` de forma estricta para
+   coincidir con el origen CORS y las URL de autenticación configuradas. Para
+   comprobar la conexión con un backend en ejecución, usa `npm run test:backend`.
+
 El registro solicita confirmación por correo si el proyecto la exige. La página
 `/auth/confirm` muestra el resultado y permite reenviar el enlace; el primer
 inicio de sesión crea el perfil de Spring usando el nombre elegido al registrarse.

@@ -3,7 +3,7 @@ import { parseAuthCallback } from '../src/services/authCallback.js';
 import * as auth from '../src/services/authService.js';
 
 const { client, api } = vi.hoisted(() => ({
-  client: { auth: { resetPasswordForEmail: vi.fn(), updateUser: vi.fn(), setSession: vi.fn(), getUser: vi.fn(), getSession: vi.fn(), signOut: vi.fn(), signInWithPassword: vi.fn() } },
+  client: { auth: { resetPasswordForEmail: vi.fn(), updateUser: vi.fn(), setSession: vi.fn(), getUser: vi.fn(), getSession: vi.fn(), signOut: vi.fn(), signInWithPassword: vi.fn(), signUp: vi.fn(), resend: vi.fn() } },
   api: { get: vi.fn(), post: vi.fn() },
 }));
 vi.mock('../src/services/supabase.js', () => ({ supabase: client, requireSupabase: () => client }));
@@ -12,6 +12,34 @@ vi.mock('../src/services/apiClient.js', () => ({ apiClient: api }));
 beforeEach(() => { vi.resetAllMocks(); window.history.replaceState(null, '', '/'); });
 
 describe('authentication service', () => {
+  it('registers with a confirmation redirect and never supplies a role', async () => {
+    client.auth.signUp.mockResolvedValue({ data: { session: null }, error: null });
+    const result = await auth.registerUser({ userName: ' Hero ', email: ' hero@example.com ', password: 'Password1' });
+    expect(result).toEqual({ needsConfirmation: true, email: 'hero@example.com' });
+    expect(client.auth.signUp).toHaveBeenCalledWith({ email: 'hero@example.com', password: 'Password1', options: { data: { username: 'Hero' }, emailRedirectTo: `${window.location.origin}/auth/confirm` } });
+  });
+
+  it('handles an immediate session and registration errors', async () => {
+    client.auth.signUp.mockResolvedValueOnce({ data: { session: {} }, error: null }).mockResolvedValueOnce({ error: new Error('invalid') });
+    expect((await auth.registerUser({ userName: 'Hero', email: 'hero@example.com', password: 'Password1' })).needsConfirmation).toBe(false);
+    await expect(auth.registerUser({ userName: 'Hero', email: 'hero@example.com', password: 'Password1' })).rejects.toThrow('invalid');
+  });
+
+  it('resends confirmation and propagates errors', async () => {
+    client.auth.resend.mockResolvedValueOnce({ error: null }).mockResolvedValueOnce({ error: new Error('limited') });
+    await auth.resendConfirmation(' hero@example.com ');
+    expect(client.auth.resend).toHaveBeenCalledWith({ type: 'signup', email: 'hero@example.com', options: { emailRedirectTo: `${window.location.origin}/auth/confirm` } });
+    await expect(auth.resendConfirmation('hero@example.com')).rejects.toThrow('limited');
+  });
+
+  it('signs in and loads the backend profile, or reports an authentication failure', async () => {
+    client.auth.signInWithPassword.mockResolvedValueOnce({ data: { user: { id: 'auth-id' } }, error: null }).mockResolvedValueOnce({ error: new Error('invalid credentials') });
+    api.get.mockResolvedValue({ data: { username: 'Hero', role: 'USER' } });
+    expect(await auth.loginUser({ email: ' hero@example.com ', password: 'Password1' })).toEqual({ username: 'Hero', role: 'USER' });
+    expect(client.auth.signInWithPassword).toHaveBeenCalledWith({ email: 'hero@example.com', password: 'Password1' });
+    await expect(auth.loginUser({ email: 'hero@example.com', password: 'wrong' })).rejects.toThrow('invalid credentials');
+  });
+
   it('requests a reset using the configured callback and handles errors', async () => {
     client.auth.resetPasswordForEmail.mockResolvedValueOnce({ error: null }).mockResolvedValueOnce({ error: new Error('failed') });
     await auth.requestPasswordReset(' user@example.com ');
