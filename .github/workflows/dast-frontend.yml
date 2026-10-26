@@ -38,6 +38,7 @@ jobs:
           npm run lint
           npm test
           npm run build
+          npm run test:pwa
 
       - name: Start disposable frontend
         shell: bash

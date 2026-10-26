@@ -1,6 +1,11 @@
 # Verificación de la PWA
 
-Para probar instalación y conexión sin depender del modo de desarrollo:
+La prueba `npm run test:pwa` verifica el manifiesto, los iconos y la recarga
+offline con Chrome o Edge. Primero ejecuta `npm run build`; si el navegador no
+está en una ruta habitual, configura `PWA_TEST_BROWSER` con su ruta completa.
+El workflow DAST también ejecuta esta prueba.
+
+Para comprobar la instalación interactiva y la conexión en un dispositivo:
 
 1. Ejecuta `npm ci`, `npm run build` y `npm run preview` en localhost, o publica
    el build en un entorno HTTPS. Abre la aplicación en un navegador compatible.
