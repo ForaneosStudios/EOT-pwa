@@ -7,6 +7,7 @@ export default function PasswordPage({ recovery, status, onLogin }) {
   const [pending, setPending] = useState(false);
   const [message, setMessage] = useState('');
   const [error, setError] = useState('');
+  const submitLabel = recovery ? 'Guardar contraseña' : 'Enviar enlace';
 
   async function submit(event) {
     event.preventDefault();
@@ -36,9 +37,9 @@ export default function PasswordPage({ recovery, status, onLogin }) {
       {(!recovery || status === 'success') && <form onSubmit={submit} className="mt-6 flex flex-col gap-4">
         <label htmlFor="recovery-value">{recovery ? 'Nueva contraseña' : 'Correo electrónico'}</label>
         <input id="recovery-value" required minLength={recovery ? 8 : undefined} type={recovery ? 'password' : 'email'} autoComplete={recovery ? 'new-password' : 'email'} value={value} onChange={(event) => setValue(event.target.value)} className="border border-gold-dim bg-void p-3" />
-        <button disabled={pending} className="border border-gold bg-crimson-light p-3 disabled:opacity-60">{pending ? 'Enviando...' : recovery ? 'Guardar contraseña' : 'Enviar enlace'}</button>
+        <button type="submit" disabled={pending} className="border border-gold bg-crimson-light p-3 disabled:opacity-60">{pending ? 'Enviando...' : submitLabel}</button>
       </form>}
-      {message && <p role="status" className="mt-4 text-success">{message}</p>}
+      {message && <output className="mt-4 block text-success">{message}</output>}
       {error && <p role="alert" className="mt-4 text-error">{error}</p>}
       <button type="button" onClick={onLogin} className="mt-6 text-gold underline">Volver a iniciar sesión</button>
     </section>

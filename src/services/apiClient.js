@@ -45,12 +45,12 @@ apiClient.interceptors.response.use(
   async (error) => {
     const request = error.config;
     if (!supabase || error.response?.status !== 401 || !request) {
-      return Promise.reject(error);
+      throw error;
     }
 
     if (request.authRetry) {
       notifyAuthenticationRequired();
-      return Promise.reject(error);
+      throw error;
     }
 
     request.authRetry = true;
@@ -58,19 +58,20 @@ apiClient.interceptors.response.use(
       const { data } = await supabase.auth.getSession();
       if (!data.session) {
         notifyAuthenticationRequired();
-        return Promise.reject(error);
+        throw error;
       }
 
       const accessToken = await refreshAccessToken();
       request.headers.Authorization = `Bearer ${accessToken}`;
       return apiClient(request);
     } catch (refreshError) {
+      if (refreshError === error) throw error;
       // A temporary network failure does not prove that the session is invalid.
       if (refreshError?.status === 400 || refreshError?.status === 401 || refreshError?.status === 403) {
         await supabase.auth.signOut({ scope: 'local' }).catch(() => {});
         notifyAuthenticationRequired();
       }
-      return Promise.reject(refreshError);
+      throw refreshError;
     }
   },
 );

@@ -15,6 +15,8 @@ import { AUTH_REQUIRED_EVENT, getApiErrorMessage } from './services/apiClient.js
 
 // Read once, before any component renders or React Strict Mode repeats effects.
 const confirmationResult = takeConfirmationResult();
+let initialPage = 'loading';
+if (confirmationResult) initialPage = confirmationResult.recovery ? 'reset' : 'confirmation';
 let confirmationPromise;
 function checkConfirmation() {
   confirmationPromise ??= verifyConfirmation(confirmationResult);
@@ -22,7 +24,7 @@ function checkConfirmation() {
 }
 
 function App() {
-  const [currentPage, setCurrentPage] = useState(confirmationResult ? (confirmationResult.recovery ? 'reset' : 'confirmation') : 'loading');
+  const [currentPage, setCurrentPage] = useState(initialPage);
   const [confirmationStatus, setConfirmationStatus] = useState('checking');
   const [user, setUser] = useState(null);
   const [message, setMessage] = useState('');
