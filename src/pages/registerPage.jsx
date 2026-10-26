@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import FormField from '../components/formField.jsx';
-import { loginUser, registerUser } from '../services/authService.js';
+import { registerUser, resendConfirmation, restoreUser } from '../services/authService.js';
 import { getApiErrorMessage } from '../services/apiClient.js';
 import { useOnlineStatus } from '../hooks/useOnlineStatus.js';
 
@@ -37,13 +37,14 @@ function validateAll(values) {
   );
 }
 
-function RegisterPage({ onLogin }) {
+function RegisterPage({ onLogin, onOpenLogin }) {
   const [formValues, setFormValues] = useState(initialValues);
   const [formErrors, setFormErrors] = useState({});
   const [touchedFields, setTouchedFields] = useState({});
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState('');
   const [registeredUser, setRegisteredUser] = useState(null);
+  const [resendMessage, setResendMessage] = useState('');
   const isOnline = useOnlineStatus();
 
   const handleChange = (event) => {
@@ -71,14 +72,30 @@ function RegisterPage({ onLogin }) {
     setIsSubmitting(true);
     setSubmitError('');
     try {
-      const createdUser = await registerUser(formValues);
-      await loginUser({ email: createdUser.email, password: formValues.password });
-      setRegisteredUser(createdUser);
+      const result = await registerUser(formValues);
+      if (result.needsConfirmation) {
+        setRegisteredUser(result);
+      } else {
+        onLogin(await restoreUser());
+      }
       setFormValues(initialValues);
       setTouchedFields({});
-      onLogin();
     } catch (error) {
       setSubmitError(getApiErrorMessage(error, 'No se pudo crear la cuenta.'));
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleResend = async () => {
+    setIsSubmitting(true);
+    setResendMessage('');
+    setSubmitError('');
+    try {
+      await resendConfirmation(registeredUser.email);
+      setResendMessage('Si la cuenta necesita confirmación, recibirás un correo. Revisa también spam.');
+    } catch (error) {
+      setSubmitError(getApiErrorMessage(error, 'No se pudo enviar otro correo.'));
     } finally {
       setIsSubmitting(false);
     }
@@ -135,14 +152,16 @@ function RegisterPage({ onLogin }) {
             )}
             {registeredUser && (
               <p role="status" className="border border-success px-3 py-2 font-body text-sm text-success">
-                Cuenta creada. Ya puedes iniciar sesión.
+                Si el correo puede registrarse, recibirás un enlace de confirmación. Revisa tu bandeja de entrada y spam.
               </p>
             )}
+            {registeredUser && <button type="button" onClick={handleResend} disabled={isSubmitting || !isOnline} className="border border-gold px-3 py-2 font-display text-sm text-gold disabled:opacity-60">Enviar otro enlace</button>}
+            {resendMessage && <p role="status" className="text-sm text-success">{resendMessage}</p>}
           </form>
 
           <p className="mt-6 text-center font-display text-sm text-parchment">
             ¿Ya tienes una cuenta?{' '}
-            <button type="button" onClick={() => onLogin('login')} className="ml-1 cursor-pointer uppercase text-parchment underline-offset-4 hover:text-gold hover:underline">
+            <button type="button" onClick={onOpenLogin} className="ml-1 cursor-pointer uppercase text-parchment underline-offset-4 hover:text-gold hover:underline">
               Iniciar sesión
             </button>
           </p>

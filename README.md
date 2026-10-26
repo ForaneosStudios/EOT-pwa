@@ -1,5 +1,40 @@
 # Echoes of the Throne - Cliente Web PWA
 
+## Autenticación con Supabase
+
+1. Copia `.env.example` a `.env.local`. Usa la URL y la clave **publishable** del
+   proyecto Supabase y la URL de la API Spring. Nunca coloques una clave secreta
+   o `service_role` en variables `VITE_`.
+2. En Supabase, configura Authentication → URL Configuration: establece el
+   origen de la aplicación y agrega la URL exacta de confirmación a Redirect
+   URLs. Para este entorno de ejemplo es `http://localhost:3000/auth/confirm`.
+   En producción utiliza la URL HTTPS real de la aplicación.
+3. Inicia el backend con el issuer de ese mismo proyecto y permite el origen del
+   frontend en `APP_CORS_ALLOWED_ORIGINS`. Inicia el frontend con:
+
+   ```powershell
+   npm install
+   npm run dev -- --port 3000 --strictPort
+   ```
+
+El registro solicita confirmación por correo si el proyecto la exige. La página
+`/auth/confirm` muestra el resultado y permite reenviar el enlace; el primer
+inicio de sesión crea el perfil de Spring usando el nombre elegido al registrarse.
+Si el nombre ya existe, el perfil no puede crearse automáticamente y el usuario
+necesita elegir otro o solicitar asistencia. La PWA usa exclusivamente la clave
+publicable, mientras Supabase gestiona los tokens de sesión.
+
+La sesión se persiste y renueva mediante `supabase-js`. Todas las llamadas al
+backend deben usar el `apiClient` compartido: obtiene el access token vigente,
+lo envía como Bearer y, ante un `401`, coordina una sola renovación aunque haya
+varias solicitudes simultáneas. Cada solicitud se reintenta como máximo una vez;
+si la renovación falla, la sesión local se elimina y la interfaz vuelve al login.
+No guardes tokens manualmente ni crees instancias Axios independientes.
+
+El enlace solo funciona en un navegador que pueda acceder al origen configurado:
+`localhost` siempre se refiere al propio dispositivo. La plantilla del correo
+se administra por separado en Supabase y no se cambia con este frontend.
+
 Repositorio principal para el cliente web de la comunidad, diseñado como una Aplicación Web Progresiva (PWA) utilizando React, Vite y Tailwind CSS.
 
 ## Propuesta de Arquitectura e Interfaz
@@ -18,7 +53,11 @@ La conversión a PWA se gestiona en tiempo de compilación utilizando el ecosist
 
 - **Estrategias de Caché Híbridas:**
   - _Cache-First (App Shell):_ Todos los recursos estáticos (HTML, JS y utilidades de Tailwind) se almacenan en el dispositivo durante la instalación. Esto asegura que la estructura visual cargue de inmediato al abrirse.
-  - _Network-First (API):_ Las consultas a la base de datos (foro, perfiles y **logros**) intentan siempre acceder a la red. Si el usuario pierde conexión, el Service Worker intercepta el fallo y devuelve la última versión de los datos guardada en caché, permitiendo consultar los logros y leer el foro sin internet.
+  - _Network-First (API pública):_ Solo categorías, hilos y posts públicos se
+    almacenan durante 24 horas. Perfiles, progreso, logros potencialmente ocultos
+    y cualquier mutación permanecen fuera de Cache Storage para evitar que datos
+    de una sesión aparezcan en otra. La URL se toma de `VITE_API_BASE_URL` durante
+    el build.
 
 - **Configuración Centralizada (`vite.config.js`):**
 

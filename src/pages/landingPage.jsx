@@ -26,13 +26,17 @@ const sections = [
   { icon: '☷', title: 'El Consejo de Almas', description: 'Conversaciones de la comunidad.' },
 ];
 
-function LandingPage({ user }) {
+function LandingPage({ user, onLogout, message }) {
   return (
     <div className="flex min-h-screen flex-col bg-void md:flex-row">
       <Sidebar navItems={navItems} />
 
       <main className="flex-1 px-6 py-8 md:px-10">
         <div className="mx-auto max-w-4xl">
+          <div className="flex justify-end">
+            <button type="button" onClick={onLogout} className="border border-gold-dim px-4 py-2 font-display text-xs uppercase text-gold hover:border-gold">Cerrar sesión</button>
+          </div>
+          {message && <p role="alert" className="mt-4 text-sm text-error">{message}</p>}
           <PageHeader
             eyebrow="Registro I · El despertar"
             title="El Códice del Heredero"

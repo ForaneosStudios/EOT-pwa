@@ -1,32 +1,83 @@
 import axios from 'axios';
+import { supabase } from './supabase.js';
+
+export const AUTH_REQUIRED_EVENT = 'eot:auth-required';
+
+let refreshPromise = null;
 
 export const apiClient = axios.create({
-  baseURL: 'http://localhost:8080/api/v1',
+  baseURL: import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080/api/v1',
   headers: { 'Content-Type': 'application/json' },
   timeout: 15000,
 });
 
-// TODO: devolver el JWT de la sesión actual de Supabase cuando se integre la autenticación.
-async function getAccessToken() {
-  const storedSession = localStorage.getItem('eot.session');
-  if (!storedSession) return null;
-
-  try {
-    return JSON.parse(storedSession).accessToken ?? null;
-  } catch {
-    return null;
+apiClient.interceptors.request.use(async (config) => {
+  if (supabase) {
+    const { data, error } = await supabase.auth.getSession();
+    if (error) throw error;
+    if (data.session?.access_token) {
+      config.headers.Authorization = `Bearer ${data.session.access_token}`;
+    }
   }
-}
-
-apiClient.interceptors.request.use(async (requestConfig) => {
-  const accessToken = await getAccessToken();
-  if (accessToken) {
-    requestConfig.headers.Authorization = `Bearer ${accessToken}`;
-  }
-  return requestConfig;
+  return config;
 });
 
-export function getApiErrorMessage(error, fallbackMessage = 'Ocurrió un error inesperado. Inténtalo de nuevo.') {
-  if (!error.response) return 'No se pudo conectar con el servidor.';
-  return error.response.data?.message ?? fallbackMessage;
+async function refreshAccessToken() {
+  refreshPromise ??= supabase.auth.refreshSession()
+    .then(({ data, error }) => {
+      if (error) throw error;
+      if (!data.session?.access_token) throw new Error('No se pudo renovar la sesiÃ³n.');
+      return data.session.access_token;
+    })
+    .finally(() => {
+      refreshPromise = null;
+    });
+
+  return refreshPromise;
+}
+
+function notifyAuthenticationRequired() {
+  window.dispatchEvent(new CustomEvent(AUTH_REQUIRED_EVENT));
+}
+
+apiClient.interceptors.response.use(
+  (response) => response,
+  async (error) => {
+    const request = error.config;
+    if (!supabase || error.response?.status !== 401 || !request || request.authRetry) {
+      return Promise.reject(error);
+    }
+
+    request.authRetry = true;
+    try {
+      const { data } = await supabase.auth.getSession();
+      if (!data.session) {
+        notifyAuthenticationRequired();
+        return Promise.reject(error);
+      }
+
+      const accessToken = await refreshAccessToken();
+      request.headers.Authorization = `Bearer ${accessToken}`;
+      return apiClient(request);
+    } catch (refreshError) {
+      await supabase.auth.signOut({ scope: 'local' }).catch(() => {});
+      notifyAuthenticationRequired();
+      return Promise.reject(refreshError);
+    }
+  },
+);
+
+export function getApiErrorMessage(error, fallback = 'Ocurrió un error. Inténtalo de nuevo.') {
+  if (error?.isAxiosError) {
+    if (!error.response) return 'No se pudo conectar con el servidor.';
+    return error.response.data?.message || fallback;
+  }
+  const messages = {
+    invalid_credentials: 'Correo o contraseña incorrectos.',
+    email_not_confirmed: 'Confirma tu correo antes de iniciar sesión.',
+    over_email_send_rate_limit: 'Se han enviado demasiados correos. Espera unos minutos e inténtalo de nuevo.',
+    over_request_rate_limit: 'Demasiados intentos. Espera unos minutos e inténtalo de nuevo.',
+    weak_password: 'La contraseña no cumple los requisitos de seguridad.',
+  };
+  return messages[error?.code] || (error?.message?.startsWith('Configura VITE_') ? error.message : fallback);
 }
