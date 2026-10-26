@@ -15,7 +15,7 @@ vi.mock('../src/pages/registerPage.jsx', () => ({ default: ({ onOpenLogin }) => 
 vi.mock('../src/pages/passwordPage.jsx', () => ({ default: ({ onLogin }) => <button onClick={onLogin}>Volver</button> }));
 vi.mock('../src/pages/confirmationPage.jsx', () => ({ default: () => <p>Confirmación</p> }));
 
-beforeEach(() => vi.resetAllMocks());
+beforeEach(() => { vi.resetAllMocks(); window.history.replaceState(null, '', '/'); });
 afterEach(cleanup);
 
 it('restores the profile and closes the session', async () => {
@@ -30,7 +30,8 @@ it('restores the profile and closes the session', async () => {
 it('navigates from registration to recovery and back', async () => {
   restoreUser.mockResolvedValue(null);
   render(<App />);
-  fireEvent.click(await screen.findByText('Login'));
+  fireEvent.click(await screen.findByText('Registrar'));
+  fireEvent.click(screen.getByText('Login'));
   fireEvent.click(screen.getByText('Recuperar'));
   fireEvent.click(screen.getByText('Volver'));
   fireEvent.click(screen.getByText('Entrar'));
