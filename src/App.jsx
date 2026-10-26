@@ -3,6 +3,7 @@ import LandingPage from './pages/landingPage.jsx';
 import LoginPage from './pages/loginPage.jsx';
 import RegisterPage from './pages/registerPage.jsx';
 import ConfirmationPage from './pages/confirmationPage.jsx';
+import PasswordPage from './pages/passwordPage.jsx';
 import {
   logoutUser,
   restoreUser,
@@ -21,7 +22,7 @@ function checkConfirmation() {
 }
 
 function App() {
-  const [currentPage, setCurrentPage] = useState(confirmationResult ? 'confirmation' : 'loading');
+  const [currentPage, setCurrentPage] = useState(confirmationResult ? (confirmationResult.recovery ? 'reset' : 'confirmation') : 'loading');
   const [confirmationStatus, setConfirmationStatus] = useState('checking');
   const [user, setUser] = useState(null);
   const [message, setMessage] = useState('');
@@ -49,7 +50,7 @@ function App() {
   useEffect(() => {
     const requireLogin = () => {
       setUser(null);
-      setMessage('Tu sesiÃ³n terminÃ³. Inicia sesiÃ³n nuevamente.');
+      setMessage('Tu sesión terminó. Inicia sesión nuevamente.');
       setCurrentPage('login');
     };
     const unsubscribe = subscribeToAuthChanges((event) => {
@@ -80,8 +81,9 @@ function App() {
 
   if (currentPage === 'loading') return <main className="min-h-screen bg-void p-8 text-parchment">Cargando sesión...</main>;
   if (currentPage === 'confirmation') return <ConfirmationPage status={confirmationStatus} onLogin={openLogin} />;
+  if (currentPage === 'forgot' || currentPage === 'reset') return <PasswordPage recovery={currentPage === 'reset'} status={confirmationStatus} onLogin={openLogin} />;
   if (currentPage === 'landing' && user) return <LandingPage user={user} onLogout={handleLogout} message={message} />;
-  if (currentPage === 'login') return <LoginPage message={message} onLogin={(profile) => { setUser(profile); setMessage(''); setCurrentPage('landing'); }} onRegister={() => { setMessage(''); setCurrentPage('register'); }} />;
+  if (currentPage === 'login') return <LoginPage message={message} onForgot={() => setCurrentPage('forgot')} onLogin={(profile) => { setUser(profile); setMessage(''); setCurrentPage('landing'); }} onRegister={() => { setMessage(''); setCurrentPage('register'); }} />;
   return <RegisterPage onLogin={(profile) => { setUser(profile); setCurrentPage('landing'); }} onOpenLogin={openLogin} />;
 }
 

@@ -1,7 +1,20 @@
 import { apiClient } from './apiClient.js';
 import { requireSupabase, supabase } from './supabase.js';
+import { parseAuthCallback } from './authCallback.js';
 
 const confirmationUrl = () => `${window.location.origin}/auth/confirm`;
+
+export async function requestPasswordReset(email) {
+  const { error } = await requireSupabase().auth.resetPasswordForEmail(email.trim(), {
+    redirectTo: `${window.location.origin}/auth/reset-password`,
+  });
+  if (error) throw error;
+}
+
+export async function updatePassword(password) {
+  const { error } = await requireSupabase().auth.updateUser({ password });
+  if (error) throw error;
+}
 
 export async function registerUser({ userName, email, password }) {
   const client = requireSupabase();
@@ -62,17 +75,9 @@ export function subscribeToAuthChanges(listener) {
 
 // Capture the one-use result before removing tokens from the browser address bar.
 export function takeConfirmationResult() {
-  const hash = new URLSearchParams(window.location.hash.slice(1));
-  const query = new URLSearchParams(window.location.search);
-  const isCallback = window.location.pathname === '/auth/confirm'
-    || hash.get('type') === 'signup' || hash.has('error_code');
-  if (!isCallback) return null;
-  const result = {
-    error: hash.get('error_code') || query.get('error_code'),
-    accessToken: hash.get('access_token'),
-    refreshToken: hash.get('refresh_token'),
-  };
-  window.history.replaceState(null, '', '/auth/confirm');
+  const result = parseAuthCallback(window.location);
+  if (!result) return null;
+  window.history.replaceState(null, '', result.recovery ? '/auth/reset-password' : '/auth/confirm');
   return result;
 }
 
@@ -84,5 +89,5 @@ export async function verifyConfirmation(result) {
   });
   if (error) return false;
   const { data, error: userError } = await client.auth.getUser();
-  return !userError && Boolean(data.user?.email_confirmed_at);
+  return !userError && Boolean(data.user && (result.recovery || data.user.email_confirmed_at));
 }
