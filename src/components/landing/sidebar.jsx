@@ -14,7 +14,7 @@ function Sidebar({ navItems }) {
       <nav>
         <ul className="flex gap-1 overflow-x-auto md:flex-col">
           {navItems.map((item) => (
-            <NavItem key={item.label} icon={item.icon} label={item.label} isActive={item.isActive} />
+            <NavItem key={item.label} {...item} />
           ))}
         </ul>
       </nav>

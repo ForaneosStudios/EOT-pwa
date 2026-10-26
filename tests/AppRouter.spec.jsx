@@ -9,6 +9,7 @@ vi.mock('../src/pages/loginPage.jsx', () => ({ default: ({ onLogin }) => <button
 vi.mock('../src/pages/registerPage.jsx', () => ({ default: ({ onLogin }) => <button onClick={() => onLogin({ role: 'USER' })}>Registrar</button> }));
 vi.mock('../src/pages/confirmationPage.jsx', () => ({ default: ({ onLogin, status }) => <button onClick={onLogin}>Confirmación {status}</button> }));
 vi.mock('../src/pages/passwordPage.jsx', () => ({ default: ({ onLogin, recovery }) => <button onClick={onLogin}>{recovery ? 'Nueva contraseña' : 'Recuperación'}</button> }));
+vi.mock('../src/pages/profilePage.jsx', () => ({ default: ({ user }) => <p>Perfil {user.username}</p> }));
 
 afterEach(cleanup);
 
@@ -40,4 +41,14 @@ it('updates the profile after registration', () => {
 it('redirects unknown routes to the authenticated home', () => {
   renderRouter('/unknown', { user: { role: 'USER' } });
   expect(screen.getByText('Inicio')).toBeTruthy();
+});
+
+it('requires a session for the profile route', () => {
+  renderRouter('/profile');
+  expect(screen.getByText('Entrar')).toBeTruthy();
+});
+
+it('renders the authenticated user profile', () => {
+  renderRouter('/profile', { user: { username: 'Alma', role: 'USER' } });
+  expect(screen.getByText('Perfil Alma')).toBeTruthy();
 });

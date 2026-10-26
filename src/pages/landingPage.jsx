@@ -2,6 +2,7 @@ import Sidebar from '../components/landing/sidebar.jsx';
 import PageHeader from '../components/landing/pageHeader.jsx';
 import WelcomeCard from '../components/landing/welcomeCard.jsx';
 import SectionCard from '../components/landing/sectionCard.jsx';
+import { navigationItems } from '../components/landing/navigation.js';
 
 // Datos de ejemplo: cuando el login esté listo, el usuario y los logros vendrán del backend
 const exampleUser = {
@@ -9,15 +10,6 @@ const exampleUser = {
   unlockedAchievements: 5,
   totalAchievements: 12,
 };
-
-const navItems = [
-  { icon: '⌂', label: 'Inicio', isActive: true },
-  { icon: '✦', label: 'Logros' },
-  { icon: '◈', label: 'Crónicas' },
-  { icon: '▤', label: 'El Archivo' },
-  { icon: '☷', label: 'Foro' },
-  { icon: '♙', label: 'Mi perfil' },
-];
 
 const sections = [
   { icon: '✦', title: 'El Salón de las Hazañas', description: 'Consulta tus logros y reliquias.' },
@@ -29,7 +21,7 @@ const sections = [
 function LandingPage({ user, onLogout, message }) {
   return (
     <div className="flex min-h-screen flex-col bg-void md:flex-row">
-      <Sidebar navItems={navItems} />
+      <Sidebar navItems={navigationItems} />
 
       <main className="flex-1 px-6 py-8 md:px-10">
         <div className="mx-auto max-w-4xl">
