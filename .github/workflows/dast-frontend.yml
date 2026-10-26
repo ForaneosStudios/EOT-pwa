@@ -36,6 +36,7 @@ jobs:
       - name: Validate and build PWA
         run: |
           npm run lint
+          npm test
           npm run build
 
       - name: Start disposable frontend
