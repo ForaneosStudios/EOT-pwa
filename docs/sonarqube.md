@@ -17,5 +17,6 @@ PR requieren un procedimiento confiable de revisión antes de ejecutar un análi
 con credenciales. Este workflow no usa `pull_request_target`.
 
 SonarQube realiza análisis estático; el workflow separado de OWASP ZAP mantiene el
-análisis dinámico. Este proyecto todavía no genera un informe LCOV, por lo que
-este workflow no publica cobertura de pruebas.
+análisis dinámico. El workflow ejecuta las pruebas y publica su cobertura LCOV.
+Actualmente la cobertura se limita a las pruebas disponibles; los flujos de React
+y autenticación requieren pruebas adicionales para cumplir el Quality Gate.
