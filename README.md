@@ -8,7 +8,8 @@
 2. En Supabase, configura Authentication → URL Configuration: establece el
    origen de la aplicación y agrega la URL exacta de confirmación a Redirect
    URLs. Para este entorno de ejemplo es `http://localhost:3000/auth/confirm`.
-   En producción utiliza la URL HTTPS real de la aplicación.
+   Agrega también `http://localhost:3000/auth/reset-password` para recuperación
+   de contraseña. En producción utiliza las URL HTTPS reales de la aplicación.
 3. Inicia el backend con el issuer de ese mismo proyecto y permite el origen del
    frontend en `APP_CORS_ALLOWED_ORIGINS`. Inicia el frontend con:
 
@@ -28,7 +29,8 @@ La sesión se persiste y renueva mediante `supabase-js`. Todas las llamadas al
 backend deben usar el `apiClient` compartido: obtiene el access token vigente,
 lo envía como Bearer y, ante un `401`, coordina una sola renovación aunque haya
 varias solicitudes simultáneas. Cada solicitud se reintenta como máximo una vez;
-si la renovación falla, la sesión local se elimina y la interfaz vuelve al login.
+si la renovación rechaza la sesión, la interfaz vuelve al login. Un fallo temporal
+de red no elimina la sesión local.
 No guardes tokens manualmente ni crees instancias Axios independientes.
 
 El enlace solo funciona en un navegador que pueda acceder al origen configurado:
@@ -53,11 +55,8 @@ La conversión a PWA se gestiona en tiempo de compilación utilizando el ecosist
 
 - **Estrategias de Caché Híbridas:**
   - _Cache-First (App Shell):_ Todos los recursos estáticos (HTML, JS y utilidades de Tailwind) se almacenan en el dispositivo durante la instalación. Esto asegura que la estructura visual cargue de inmediato al abrirse.
-  - _Network-First (API pública):_ Solo categorías, hilos y posts públicos se
-    almacenan durante 24 horas. Perfiles, progreso, logros potencialmente ocultos
-    y cualquier mutación permanecen fuera de Cache Storage para evitar que datos
-    de una sesión aparezcan en otra. La URL se toma de `VITE_API_BASE_URL` durante
-    el build.
+- Las respuestas de la API no se almacenan en caché. El shell puede abrirse sin
+  conexión, pero los datos y el inicio de sesión requieren acceso a la red.
 
 - **Configuración Centralizada (`vite.config.js`):**
 
