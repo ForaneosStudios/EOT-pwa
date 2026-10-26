@@ -26,7 +26,7 @@ async function refreshAccessToken() {
   refreshPromise ??= supabase.auth.refreshSession()
     .then(({ data, error }) => {
       if (error) throw error;
-      if (!data.session?.access_token) throw new Error('No se pudo renovar la sesiÃ³n.');
+      if (!data.session?.access_token) throw new Error('No se pudo renovar la sesión.');
       return data.session.access_token;
     })
     .finally(() => {
@@ -44,8 +44,13 @@ apiClient.interceptors.response.use(
   (response) => response,
   async (error) => {
     const request = error.config;
-    if (!supabase || error.response?.status !== 401 || !request || request.authRetry) {
-      return Promise.reject(error);
+    if (!supabase || error.response?.status !== 401 || !request) {
+      throw error;
+    }
+
+    if (request.authRetry) {
+      notifyAuthenticationRequired();
+      throw error;
     }
 
     request.authRetry = true;
@@ -53,16 +58,20 @@ apiClient.interceptors.response.use(
       const { data } = await supabase.auth.getSession();
       if (!data.session) {
         notifyAuthenticationRequired();
-        return Promise.reject(error);
+        throw error;
       }
 
       const accessToken = await refreshAccessToken();
       request.headers.Authorization = `Bearer ${accessToken}`;
       return apiClient(request);
     } catch (refreshError) {
-      await supabase.auth.signOut({ scope: 'local' }).catch(() => {});
-      notifyAuthenticationRequired();
-      return Promise.reject(refreshError);
+      if (refreshError === error) throw error;
+      // A temporary network failure does not prove that the session is invalid.
+      if (refreshError?.status === 400 || refreshError?.status === 401 || refreshError?.status === 403) {
+        await supabase.auth.signOut({ scope: 'local' }).catch(() => {});
+        notifyAuthenticationRequired();
+      }
+      throw refreshError;
     }
   },
 );
@@ -70,7 +79,16 @@ apiClient.interceptors.response.use(
 export function getApiErrorMessage(error, fallback = 'Ocurrió un error. Inténtalo de nuevo.') {
   if (error?.isAxiosError) {
     if (!error.response) return 'No se pudo conectar con el servidor.';
-    return error.response.data?.message || fallback;
+    const messages = {
+      400: 'Revisa los datos enviados e inténtalo de nuevo.',
+      401: 'Tu sesión ha terminado. Inicia sesión nuevamente.',
+      403: 'No tienes permiso para realizar esta acción.',
+      404: 'No se encontró el recurso solicitado.',
+      409: 'La operación entra en conflicto con los datos actuales.',
+      500: 'Ocurrió un error en el servidor. Inténtalo más tarde.',
+      503: 'El servicio no está disponible. Inténtalo más tarde.',
+    };
+    return error.response.data?.message || messages[error.response.status] || fallback;
   }
   const messages = {
     invalid_credentials: 'Correo o contraseña incorrectos.',

@@ -7,9 +7,17 @@ yarn-error.log*
 pnpm-debug.log*
 lerna-debug.log*
 
-node_modules
-dist
-dist-ssr
+node_modules/
+dist/
+dist-ssr/
+dev-dist/
+coverage/
+.nyc_output/
+
+# Environment files can contain credentials; keep the example versioned.
+.env
+.env.*
+!.env.example
 *.local
 
 # Editor directories and files

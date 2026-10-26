@@ -6,7 +6,7 @@ import { useOnlineStatus } from '../hooks/useOnlineStatus.js';
 
 const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
-export default function LoginPage({ onLogin, onRegister, message }) {
+export default function LoginPage({ onLogin, onRegister, onForgot, message }) {
   const [formValues, setFormValues] = useState({ email: '', password: '' });
   const [formErrors, setFormErrors] = useState({});
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -59,6 +59,7 @@ export default function LoginPage({ onLogin, onRegister, message }) {
             {!isOnline && <p role="status" className="border border-warning px-3 py-2 font-body text-sm text-warning">Sin conexión. Necesitas internet para iniciar sesión.</p>}
             {submitError && <p role="alert" className="border border-error px-3 py-2 font-body text-sm text-error">{submitError}</p>}
           </form>
+          <button type="button" onClick={onForgot} className="mt-5 text-sm text-gold underline">¿Olvidaste tu contraseña?</button>
           <p className="mt-6 text-center font-display text-sm text-parchment">
             ¿No tienes una cuenta?{' '}
             <button type="button" onClick={onRegister} className="ml-1 cursor-pointer uppercase text-parchment underline-offset-4 hover:text-gold hover:underline">Crear cuenta</button>
