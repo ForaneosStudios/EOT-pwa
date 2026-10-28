@@ -12,16 +12,20 @@ vi.mock('../src/services/apiClient.js', () => ({ apiClient: api }));
 beforeEach(() => { vi.resetAllMocks(); window.history.replaceState(null, '', '/'); });
 
 describe('authentication service', () => {
-  it('registers with a confirmation redirect and never supplies a role', async () => {
-    client.auth.signUp.mockResolvedValue({ data: { session: null }, error: null });
-    const result = await auth.registerUser({ userName: ' Hero ', email: ' hero@example.com ', password: 'Password1' });
-    expect(result).toEqual({ needsConfirmation: true, email: 'hero@example.com' });
-    expect(client.auth.signUp).toHaveBeenCalledWith({ email: 'hero@example.com', password: 'Password1', options: { data: { username: 'Hero' }, emailRedirectTo: `${window.location.origin}/auth/confirm` } });
+  it('registers without email confirmation and creates the backend profile', async () => {
+    const user = { user_metadata: { username: 'Hero' } };
+    client.auth.signUp.mockResolvedValue({ data: { session: { user }, user }, error: null });
+    api.get.mockRejectedValue({ response: { status: 403 } });
+    api.post.mockResolvedValue({ data: { username: 'Hero', role: 'USER' } });
+    expect(await auth.registerUser({ userName: ' Hero ', email: ' hero@example.com ', password: 'Password1' })).toEqual({ username: 'Hero', role: 'USER' });
+    expect(client.auth.signUp).toHaveBeenCalledWith({ email: 'hero@example.com', password: 'Password1', options: { data: { username: 'Hero' } } });
+    expect(api.post).toHaveBeenCalledWith('/users/me/profile', { username: 'Hero' });
   });
 
-  it('handles an immediate session and registration errors', async () => {
-    client.auth.signUp.mockResolvedValueOnce({ data: { session: {} }, error: null }).mockResolvedValueOnce({ error: new Error('invalid') });
-    expect((await auth.registerUser({ userName: 'Hero', email: 'hero@example.com', password: 'Password1' })).needsConfirmation).toBe(false);
+  it('rejects missing sessions and propagates registration errors', async () => {
+    client.auth.signUp.mockResolvedValueOnce({ data: { session: null }, error: null }).mockResolvedValueOnce({ error: new Error('invalid') });
+    await expect(auth.registerUser({ userName: 'Hero', email: 'hero@example.com', password: 'Password1' })).rejects.toThrow('No se pudo iniciar');
+    expect(api.get).not.toHaveBeenCalled();
     await expect(auth.registerUser({ userName: 'Hero', email: 'hero@example.com', password: 'Password1' })).rejects.toThrow('invalid');
   });
 

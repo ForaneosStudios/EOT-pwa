@@ -21,10 +21,13 @@ export async function registerUser({ userName, email, password }) {
   const { data, error } = await client.auth.signUp({
     email: email.trim(),
     password,
-    options: { data: { username: userName.trim() }, emailRedirectTo: confirmationUrl() },
+    options: { data: { username: userName.trim() } },
   });
   if (error) throw error;
-  return { needsConfirmation: !data.session, email: email.trim() };
+  if (!data.session) {
+    throw new Error('No se pudo iniciar la sesión. Intenta iniciar sesión con tu correo y contraseña.');
+  }
+  return loadProfile(data.user || data.session.user);
 }
 
 export async function resendConfirmation(email) {

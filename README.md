@@ -18,16 +18,20 @@
    npm run dev -- --port 3000 --strictPort
    ```
 
-   El servidor de desarrollo usa el puerto `3000` de forma estricta para
+   Los servidores de desarrollo y preview usan el puerto `3000` de forma estricta para
    coincidir con el origen CORS y las URL de autenticación configuradas. Para
    comprobar la conexión con un backend en ejecución, usa `npm run test:backend`.
 
-El registro solicita confirmación por correo si el proyecto la exige. La página
-`/auth/confirm` muestra el resultado y permite reenviar el enlace; el primer
-inicio de sesión crea el perfil de Spring usando el nombre elegido al registrarse.
-Si el nombre ya existe, el perfil no puede crearse automáticamente y el usuario
-necesita elegir otro o solicitar asistencia. La PWA usa exclusivamente la clave
-publicable, mientras Supabase gestiona los tokens de sesión.
+Para probar el build, detén primero `npm run dev`, ejecuta `npm run build`
+y `npm run preview`, y abre `http://localhost:3000`. Ambos servidores usan
+el mismo puerto y no pueden ejecutarse al mismo tiempo.
+
+El registro inicia sesión y crea el perfil de Spring inmediatamente, sin correo
+de confirmación. En Supabase, desactiva **Confirm Email** en Authentication >
+Sign In / Providers > Email. La configuración local del backend ya usa
+`auth.email.enable_confirmations = false`; esta opción local no modifica el
+proyecto alojado. La recuperación de contraseña sigue enviando correos.
+La PWA usa exclusivamente la clave publicable de Supabase.
 
 La sesión se persiste y renueva mediante `supabase-js`. Todas las llamadas al
 backend deben usar el `apiClient` compartido: obtiene el access token vigente,
