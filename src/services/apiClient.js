@@ -92,6 +92,10 @@ export function getApiErrorMessage(error, fallback = 'Ocurrió un error. Intént
   }
   const messages = {
     invalid_credentials: 'Correo o contraseña incorrectos.',
+    user_already_exists: 'Este correo ya está registrado. Inicia sesión o recupera tu contraseña.',
+    email_exists: 'Este correo ya está registrado. Inicia sesión o recupera tu contraseña.',
+    email_address_invalid: 'Introduce un correo electrónico válido.',
+    signup_disabled: 'El registro de cuentas está deshabilitado temporalmente.',
     email_not_confirmed: 'Confirma tu correo antes de iniciar sesión.',
     over_email_send_rate_limit: 'Se han enviado demasiados correos. Espera unos minutos e inténtalo de nuevo.',
     over_request_rate_limit: 'Demasiados intentos. Espera unos minutos e inténtalo de nuevo.',
