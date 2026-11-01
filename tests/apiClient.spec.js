@@ -47,5 +47,7 @@ describe('API client', () => {
     expect(getApiErrorMessage({ isAxiosError: true, response: { status: 403, data: {} } })).toMatch(/permiso/);
     expect(getApiErrorMessage({ isAxiosError: true })).toMatch(/conectar/);
     expect(getApiErrorMessage({ code: 'invalid_credentials' })).toMatch(/incorrectos/);
+    expect(getApiErrorMessage({ code: 'user_already_exists' })).toMatch(/ya está registrado/);
+    expect(getApiErrorMessage({ code: 'email_exists' })).toMatch(/recupera tu contraseña/);
   });
 });

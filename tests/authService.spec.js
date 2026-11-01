@@ -3,7 +3,7 @@ import { parseAuthCallback } from '../src/services/authCallback.js';
 import * as auth from '../src/services/authService.js';
 
 const { client, api } = vi.hoisted(() => ({
-  client: { auth: { resetPasswordForEmail: vi.fn(), updateUser: vi.fn(), setSession: vi.fn(), getUser: vi.fn(), getSession: vi.fn(), signOut: vi.fn(), signInWithPassword: vi.fn() } },
+  client: { auth: { resetPasswordForEmail: vi.fn(), updateUser: vi.fn(), setSession: vi.fn(), getUser: vi.fn(), getSession: vi.fn(), signOut: vi.fn(), signInWithPassword: vi.fn(), signUp: vi.fn(), resend: vi.fn() } },
   api: { get: vi.fn(), post: vi.fn() },
 }));
 vi.mock('../src/services/supabase.js', () => ({ supabase: client, requireSupabase: () => client }));
@@ -12,6 +12,45 @@ vi.mock('../src/services/apiClient.js', () => ({ apiClient: api }));
 beforeEach(() => { vi.resetAllMocks(); window.history.replaceState(null, '', '/'); });
 
 describe('authentication service', () => {
+  it('registers without email confirmation and creates the backend profile', async () => {
+    const user = { user_metadata: { username: 'Hero' } };
+    client.auth.signUp.mockResolvedValue({ data: { session: { user }, user }, error: null });
+    api.get.mockRejectedValue({ response: { status: 403 } });
+    api.post.mockResolvedValue({ data: { username: 'Hero', role: 'USER' } });
+    expect(await auth.registerUser({ userName: ' Hero ', email: ' hero@example.com ', password: 'Password1' })).toEqual({ username: 'Hero', role: 'USER' });
+    expect(client.auth.signUp).toHaveBeenCalledWith({ email: 'hero@example.com', password: 'Password1', options: { data: { username: 'Hero' } } });
+    expect(api.post).toHaveBeenCalledWith('/users/me/profile', { username: 'Hero' });
+  });
+
+  it('rejects missing sessions and propagates registration errors', async () => {
+    client.auth.signUp.mockResolvedValueOnce({ data: { session: null }, error: null }).mockResolvedValueOnce({ error: new Error('invalid') });
+    await expect(auth.registerUser({ userName: 'Hero', email: 'hero@example.com', password: 'Password1' })).rejects.toThrow('No se pudo iniciar');
+    expect(api.get).not.toHaveBeenCalled();
+    await expect(auth.registerUser({ userName: 'Hero', email: 'hero@example.com', password: 'Password1' })).rejects.toThrow('invalid');
+  });
+
+  it('resends confirmation and propagates errors', async () => {
+    client.auth.resend.mockResolvedValueOnce({ error: null }).mockResolvedValueOnce({ error: new Error('limited') });
+    await auth.resendConfirmation(' hero@example.com ');
+    expect(client.auth.resend).toHaveBeenCalledWith({ type: 'signup', email: 'hero@example.com', options: { emailRedirectTo: `${window.location.origin}/auth/confirm` } });
+    await expect(auth.resendConfirmation('hero@example.com')).rejects.toThrow('limited');
+  });
+
+  it('signs in and loads the backend profile, or reports an authentication failure', async () => {
+    client.auth.signInWithPassword.mockResolvedValueOnce({ data: { user: { id: 'auth-id' } }, error: null }).mockResolvedValueOnce({ error: new Error('invalid credentials') });
+    api.get.mockResolvedValue({ data: { username: 'Hero', role: 'USER' } });
+    expect(await auth.loginUser({ email: ' hero@example.com ', password: 'Password1' })).toEqual({ username: 'Hero', role: 'USER' });
+    expect(client.auth.signInWithPassword).toHaveBeenCalledWith({ email: 'hero@example.com', password: 'Password1' });
+    await expect(auth.loginUser({ email: 'hero@example.com', password: 'wrong' })).rejects.toThrow('invalid credentials');
+  });
+
+  it('checks username availability before registration', async () => {
+    api.get.mockResolvedValueOnce({ data: { available: true } }).mockResolvedValueOnce({ data: { available: false } });
+    await expect(auth.isUsernameAvailable(' Hero ')).resolves.toBe(true);
+    await expect(auth.isUsernameAvailable('taken')).resolves.toBe(false);
+    expect(api.get).toHaveBeenCalledWith('/users/availability', { params: { username: 'Hero' } });
+  });
+
   it('requests a reset using the configured callback and handles errors', async () => {
     client.auth.resetPasswordForEmail.mockResolvedValueOnce({ error: null }).mockResolvedValueOnce({ error: new Error('failed') });
     await auth.requestPasswordReset(' user@example.com ');

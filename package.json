@@ -9,6 +9,7 @@
     "lint": "eslint .",
     "test": "node --test tests/*.test.js && vitest run",
     "test:coverage": "node --test tests/*.test.js && vitest run --coverage",
+    "test:backend": "node --test tests/backend.integration.js",
     "preview": "vite preview"
   },
   "dependencies": {

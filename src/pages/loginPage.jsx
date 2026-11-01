@@ -52,7 +52,7 @@ export default function LoginPage({ onLogin, onRegister, onForgot, message }) {
           {message && <p role="alert" className="mt-4 border border-warning px-3 py-2 font-body text-sm text-warning">{message}</p>}
           <form onSubmit={handleSubmit} noValidate className="mt-6 flex flex-col gap-5">
             <FormField label="Correo electrónico" type="email" autoComplete="email" {...getFieldProps('email')} />
-            <FormField label="Contraseña" type="password" autoComplete="current-password" {...getFieldProps('password')} />
+            <FormField label="Contraseña" type="password" autoComplete="current-password" showPasswordToggle {...getFieldProps('password')} />
             <button type="submit" disabled={isSubmitting || !isOnline} className="mt-5 h-11 w-full cursor-pointer border border-gold bg-crimson-light px-4 text-center font-display text-sm uppercase text-parchment transition-colors hover:bg-crimson disabled:cursor-not-allowed disabled:opacity-60">
               {isSubmitting ? 'Iniciando sesión...' : 'Iniciar sesión'}
             </button>
