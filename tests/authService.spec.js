@@ -44,6 +44,13 @@ describe('authentication service', () => {
     await expect(auth.loginUser({ email: 'hero@example.com', password: 'wrong' })).rejects.toThrow('invalid credentials');
   });
 
+  it('checks username availability before registration', async () => {
+    api.get.mockResolvedValueOnce({ data: { available: true } }).mockResolvedValueOnce({ data: { available: false } });
+    await expect(auth.isUsernameAvailable(' Hero ')).resolves.toBe(true);
+    await expect(auth.isUsernameAvailable('taken')).resolves.toBe(false);
+    expect(api.get).toHaveBeenCalledWith('/users/availability', { params: { username: 'Hero' } });
+  });
+
   it('requests a reset using the configured callback and handles errors', async () => {
     client.auth.resetPasswordForEmail.mockResolvedValueOnce({ error: null }).mockResolvedValueOnce({ error: new Error('failed') });
     await auth.requestPasswordReset(' user@example.com ');

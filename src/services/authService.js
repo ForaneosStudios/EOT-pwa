@@ -30,6 +30,11 @@ export async function registerUser({ userName, email, password }) {
   return loadProfile(data.user || data.session.user);
 }
 
+export async function isUsernameAvailable(userName) {
+  const { data } = await apiClient.get('/users/availability', { params: { username: userName.trim() } });
+  return data.available;
+}
+
 export async function resendConfirmation(email) {
   const { error } = await requireSupabase().auth.resend({
     type: 'signup', email: email.trim(), options: { emailRedirectTo: confirmationUrl() },
