@@ -37,8 +37,8 @@ function HomeRoute() {
 }
 
 function ProfileRoute() {
-  const { user, logout, message } = useAuth();
-  return <ProfilePage user={user} onLogout={logout} message={message} />;
+  const { user, logout, message, setUser } = useAuth();
+  return <ProfilePage user={user} onLogout={logout} onUserUpdate={setUser} message={message} />;
 }
 
 function AchievementsRoute() {
