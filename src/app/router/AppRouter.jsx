@@ -7,6 +7,7 @@ import RegisterPage from '../../pages/registerPage.jsx';
 import ConfirmationPage from '../../pages/confirmationPage.jsx';
 import PasswordPage from '../../pages/passwordPage.jsx';
 import ProfilePage from '../../pages/profilePage.jsx';
+import AchievementsPage from '../../pages/achievementsPage.jsx';
 
 function LoginRoute() {
   const { setUser, message, setMessage } = useAuth();
@@ -40,6 +41,11 @@ function ProfileRoute() {
   return <ProfilePage user={user} onLogout={logout} message={message} />;
 }
 
+function AchievementsRoute() {
+  const { user, logout, message } = useAuth();
+  return <AchievementsPage user={user} onLogout={logout} message={message} />;
+}
+
 function ForgotRoute() {
   const navigate = useNavigate();
   return <PasswordPage onLogin={() => { void navigate('/login'); }} />;
@@ -52,7 +58,7 @@ export default function AppRouter() {
     <Route path="/auth/confirm" element={<CallbackRoute />} />
     <Route path="/auth/reset-password" element={<CallbackRoute recovery />} />
     <Route path="/auth/forgot-password" element={<ForgotRoute />} />
-    <Route element={<ProtectedRoute />}><Route path="/" element={<HomeRoute />} /><Route path="/profile" element={<ProfileRoute />} /></Route>
+    <Route element={<ProtectedRoute />}><Route path="/" element={<HomeRoute />} /><Route path="/achievements" element={<AchievementsRoute />} /><Route path="/profile" element={<ProfileRoute />} /></Route>
     <Route path="*" element={<Navigate to="/" replace />} />
   </Routes>;
 }

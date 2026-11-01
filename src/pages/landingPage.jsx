@@ -1,8 +1,10 @@
+import { useEffect, useState } from 'react';
 import Sidebar from '../components/landing/sidebar.jsx';
 import PageHeader from '../components/landing/pageHeader.jsx';
 import WelcomeCard from '../components/landing/welcomeCard.jsx';
 import SectionCard from '../components/landing/sectionCard.jsx';
 import { navigationItems } from '../components/landing/navigation.js';
+import { apiClient } from '../services/apiClient.js';
 
 // Datos de ejemplo: cuando el login esté listo, el usuario y los logros vendrán del backend
 const exampleUser = {
@@ -19,12 +21,22 @@ const sections = [
 ];
 
 function LandingPage({ user, onLogout, message }) {
+  const [achievementProgress, setAchievementProgress] = useState({ unlocked: 0, total: 0 });
+
+  useEffect(() => {
+    const controller = new AbortController();
+    apiClient.get('/user-achievements/me', { signal: controller.signal }).then(({ data }) => {
+      if (Array.isArray(data)) setAchievementProgress({ unlocked: data.filter((achievement) => achievement.isUnlocked === true).length, total: data.length });
+    }).catch(() => {});
+    return () => controller.abort();
+  }, [user?.userId]);
+
   return (
     <div className="flex min-h-screen flex-col bg-void md:flex-row">
       <Sidebar navItems={navigationItems} />
 
       <main className="flex-1 px-6 py-8 md:px-10">
-        <div className="mx-auto max-w-4xl">
+        <div className="page-enter mx-auto max-w-4xl">
           <div className="flex justify-end">
             <button type="button" onClick={onLogout} className="border border-gold-dim px-4 py-2 font-display text-xs uppercase text-gold hover:border-gold">Cerrar sesión</button>
           </div>
@@ -38,8 +50,8 @@ function LandingPage({ user, onLogout, message }) {
           <div className="mt-6">
             <WelcomeCard
               userName={user?.username ?? exampleUser.userName}
-              unlockedAchievements={exampleUser.unlockedAchievements}
-              totalAchievements={exampleUser.totalAchievements}
+              unlockedAchievements={achievementProgress.unlocked}
+              totalAchievements={achievementProgress.total}
             />
           </div>
 
@@ -52,6 +64,7 @@ function LandingPage({ user, onLogout, message }) {
                 icon={section.icon}
                 title={section.title}
                 description={section.description}
+                to={section.title.includes('Sal') ? '/achievements' : undefined}
               />
             ))}
           </div>

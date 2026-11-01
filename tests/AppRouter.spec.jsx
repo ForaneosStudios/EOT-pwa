@@ -10,6 +10,7 @@ vi.mock('../src/pages/registerPage.jsx', () => ({ default: ({ onLogin }) => <but
 vi.mock('../src/pages/confirmationPage.jsx', () => ({ default: ({ onLogin, status }) => <button onClick={onLogin}>Confirmación {status}</button> }));
 vi.mock('../src/pages/passwordPage.jsx', () => ({ default: ({ onLogin, recovery }) => <button onClick={onLogin}>{recovery ? 'Nueva contraseña' : 'Recuperación'}</button> }));
 vi.mock('../src/pages/profilePage.jsx', () => ({ default: ({ user }) => <p>Perfil {user.username}</p> }));
+vi.mock('../src/pages/achievementsPage.jsx', () => ({ default: () => <p>Logros</p> }));
 
 afterEach(cleanup);
 
@@ -45,6 +46,11 @@ it('redirects unknown routes to the authenticated home', () => {
 
 it('requires a session for the profile route', () => {
   renderRouter('/profile');
+  expect(screen.getByText('Entrar')).toBeTruthy();
+});
+
+it('requires a session for the achievements route', () => {
+  renderRouter('/achievements');
   expect(screen.getByText('Entrar')).toBeTruthy();
 });
 
