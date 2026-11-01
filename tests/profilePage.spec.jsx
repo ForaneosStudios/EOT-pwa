@@ -12,7 +12,7 @@ beforeEach(() => vi.resetAllMocks());
 afterEach(cleanup);
 
 function renderProfile(onLogout = vi.fn()) {
-  render(<MemoryRouter initialEntries={['/profile']}><ProfilePage user={{ userId: '123', username: 'Alma' }} onLogout={onLogout} /></MemoryRouter>);
+  render(<MemoryRouter initialEntries={['/profile']}><ProfilePage user={{ userId: '123', username: 'Alma', email: 'alma@example.com' }} onLogout={onLogout} onUserUpdate={vi.fn()} /></MemoryRouter>);
   return onLogout;
 }
 
@@ -40,4 +40,11 @@ it('does not interpret malformed responses as an empty achievement list', async 
   apiClient.get.mockResolvedValue({ data: {} });
   renderProfile();
   expect(await screen.findByRole('alert')).toBeTruthy();
+});
+
+it('shows unlocked achievements with their unlock date', async () => {
+  apiClient.get.mockResolvedValue({ data: [{ achId: 'one', achName: 'Ascenso', achDescription: 'Escapa.', isUnlocked: true, unlockedAt: '2026-11-01T12:00:00Z' }] });
+  renderProfile();
+  expect(await screen.findByText('Ascenso')).toBeTruthy();
+  expect(screen.getByText(/1 de noviembre de 2026/i)).toBeTruthy();
 });
