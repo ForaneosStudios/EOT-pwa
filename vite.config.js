@@ -2,9 +2,10 @@ import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 import tailwindcss from '@tailwindcss/vite';
 import { VitePWA } from 'vite-plugin-pwa';
-import tailwindcss from '@tailwindcss/vite';
 
 export default defineConfig({
+  server: { port: 3000, strictPort: true },
+  preview: { port: 3000, strictPort: true },
   plugins: [
     react(),
     tailwindcss(),
@@ -27,22 +28,8 @@ export default defineConfig({
         // 1. ESTRATEGIA CACHE-FIRST (APP SHELL)
         globPatterns: ['**/*.{js,css,html,ico,png,svg}'],
         
-        // 2. ESTRATEGIA NETWORK-FIRST (API)
+        // API responses are network-only to prevent cross-session data leaks.
         runtimeCaching: [
-          {
-            urlPattern: /^https:\/\/dominio-del-backend\.com\/api\/.*/i,
-            handler: 'NetworkFirst',
-            options: {
-              cacheName: 'foro-y-logros-api-cache',
-              expiration: {
-                maxEntries: 100,
-                maxAgeSeconds: 60 * 60 * 24 * 7 // 7 días offline
-              },
-              cacheableResponse: {
-                statuses: [0, 200]
-              }
-            }
-          },
           // 3. FUENTES DE GOOGLE: para que Cinzel e Inter carguen offline
           {
             urlPattern: /^https:\/\/fonts\.googleapis\.com\/.*/i,
