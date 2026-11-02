@@ -32,6 +32,30 @@ body {
   to { opacity: 1; transform: translateY(0) scale(1); }
 }
 
+@keyframes forum-filter-enter {
+  from { opacity: 0; transform: translateY(-8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes forum-item-enter {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes modal-backdrop-enter {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes modal-panel-enter {
+  from { opacity: 0; transform: translateY(16px) scale(0.975); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+@keyframes loading-sigil-spin {
+  to { transform: rotate(360deg); }
+}
+
 .page-enter {
   animation: page-enter 280ms ease-out both;
 }
@@ -46,9 +70,48 @@ body {
 .achievement-list-enter > article:nth-child(5) { animation-delay: 180ms; }
 .achievement-list-enter > article:nth-child(6) { animation-delay: 225ms; }
 
+.forum-filter-bar {
+  animation: forum-filter-enter 260ms ease-out both;
+  transition: border-color 180ms ease, box-shadow 180ms ease, background-color 180ms ease;
+}
+
+.forum-filter-bar:focus-within {
+  border-color: color-mix(in srgb, var(--color-gold) 60%, transparent);
+  box-shadow: 0 8px 20px rgb(0 0 0 / 20%);
+}
+
+.forum-results > * { animation: forum-item-enter 280ms ease-out both; }
+.forum-results > *:nth-child(2) { animation-delay: 40ms; }
+.forum-results > *:nth-child(3) { animation-delay: 80ms; }
+.forum-results > *:nth-child(4) { animation-delay: 120ms; }
+.forum-results > *:nth-child(5) { animation-delay: 160ms; }
+.forum-results > *:nth-child(6) { animation-delay: 200ms; }
+.forum-results > *:nth-child(7) { animation-delay: 240ms; }
+.forum-results > *:nth-child(8) { animation-delay: 280ms; }
+.forum-results > *:nth-child(9) { animation-delay: 320ms; }
+.forum-results > *:nth-child(10) { animation-delay: 360ms; }
+
+.forum-card { transition: border-color 180ms ease, transform 180ms ease, background-color 180ms ease; }
+.forum-card:hover { transform: translateY(-2px); }
+.forum-empty { animation: forum-item-enter 240ms ease-out both; }
+.modal-backdrop { animation: modal-backdrop-enter 180ms ease-out both; }
+.modal-panel { animation: modal-panel-enter 240ms cubic-bezier(.2, .8, .2, 1) both; }
+.loading-sigil { display: grid; place-items: center; width: 3rem; height: 3rem; border: 1px solid var(--color-gold-dim); border-top-color: var(--color-gold); border-radius: 9999px; animation: loading-sigil-spin 900ms linear infinite; }
+.forum-thread-content > article, .forum-thread-posts > article { animation: forum-item-enter 260ms ease-out both; }
+
 @media (prefers-reduced-motion: reduce) {
   .page-enter,
-  .achievement-list-enter > article {
+  .achievement-list-enter > article,
+  .forum-filter-bar,
+  .forum-results > *,
+  .forum-empty,
+  .modal-backdrop,
+  .modal-panel,
+  .loading-sigil,
+  .forum-thread-content > article,
+  .forum-thread-posts > article {
     animation: none;
   }
+
+  .forum-card { transition: none; }
 }
