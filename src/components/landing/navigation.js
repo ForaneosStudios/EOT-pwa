@@ -3,6 +3,6 @@ export const navigationItems = [
   { icon: '✦', label: 'Logros', to: '/achievements' },
   { icon: '◈', label: 'Crónicas' },
   { icon: '▤', label: 'El Archivo' },
-  { icon: '☷', label: 'Foro' },
+  { icon: '☷', label: 'Foro', to: '/forum' },
   { icon: '♙', label: 'Mi perfil', to: '/profile' },
 ];

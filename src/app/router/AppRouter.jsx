@@ -8,6 +8,8 @@ import ConfirmationPage from '../../pages/confirmationPage.jsx';
 import PasswordPage from '../../pages/passwordPage.jsx';
 import ProfilePage from '../../pages/profilePage.jsx';
 import AchievementsPage from '../../pages/achievementsPage.jsx';
+import ForumPage from '../../pages/forumPage.jsx';
+import ForumThreadPage from '../../pages/forumThreadPage.jsx';
 
 function LoginRoute() {
   const { setUser, message, setMessage } = useAuth();
@@ -45,6 +47,8 @@ function AchievementsRoute() {
   const { user, logout, message } = useAuth();
   return <AchievementsPage user={user} onLogout={logout} message={message} />;
 }
+function ForumRoute() { const { user, logout, message } = useAuth(); return <ForumPage user={user} onLogout={logout} message={message} />; }
+function ForumThreadRoute() { const { user, logout } = useAuth(); return <ForumThreadPage user={user} onLogout={logout} />; }
 
 function ForgotRoute() {
   const navigate = useNavigate();
@@ -58,7 +62,7 @@ export default function AppRouter() {
     <Route path="/auth/confirm" element={<CallbackRoute />} />
     <Route path="/auth/reset-password" element={<CallbackRoute recovery />} />
     <Route path="/auth/forgot-password" element={<ForgotRoute />} />
-    <Route element={<ProtectedRoute />}><Route path="/" element={<HomeRoute />} /><Route path="/achievements" element={<AchievementsRoute />} /><Route path="/profile" element={<ProfileRoute />} /></Route>
+    <Route element={<ProtectedRoute />}><Route path="/" element={<HomeRoute />} /><Route path="/achievements" element={<AchievementsRoute />} /><Route path="/forum" element={<ForumRoute />} /><Route path="/forum/:threadId" element={<ForumThreadRoute />} /><Route path="/profile" element={<ProfileRoute />} /></Route>
     <Route path="*" element={<Navigate to="/" replace />} />
   </Routes>;
 }
