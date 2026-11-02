@@ -1,7 +1,10 @@
+import { useEffect, useState } from 'react';
 import Sidebar from '../components/landing/sidebar.jsx';
 import PageHeader from '../components/landing/pageHeader.jsx';
 import WelcomeCard from '../components/landing/welcomeCard.jsx';
 import SectionCard from '../components/landing/sectionCard.jsx';
+import { navigationItems } from '../components/landing/navigation.js';
+import { apiClient } from '../services/apiClient.js';
 
 // Datos de ejemplo: cuando el login esté listo, el usuario y los logros vendrán del backend
 const exampleUser = {
@@ -10,15 +13,6 @@ const exampleUser = {
   totalAchievements: 12,
 };
 
-const navItems = [
-  { icon: '⌂', label: 'Inicio', isActive: true },
-  { icon: '✦', label: 'Logros' },
-  { icon: '◈', label: 'Crónicas' },
-  { icon: '▤', label: 'El Archivo' },
-  { icon: '☷', label: 'Foro' },
-  { icon: '♙', label: 'Mi perfil' },
-];
-
 const sections = [
   { icon: '✦', title: 'El Salón de las Hazañas', description: 'Consulta tus logros y reliquias.' },
   { icon: '◈', title: 'Crónicas del Inframundo', description: 'Descubre personajes y secretos.' },
@@ -26,13 +20,27 @@ const sections = [
   { icon: '☷', title: 'El Consejo de Almas', description: 'Conversaciones de la comunidad.' },
 ];
 
-function LandingPage({ user }) {
+function LandingPage({ user, onLogout, message }) {
+  const [achievementProgress, setAchievementProgress] = useState({ unlocked: 0, total: 0 });
+
+  useEffect(() => {
+    const controller = new AbortController();
+    apiClient.get('/user-achievements/me', { signal: controller.signal }).then(({ data }) => {
+      if (Array.isArray(data)) setAchievementProgress({ unlocked: data.filter((achievement) => achievement.isUnlocked === true).length, total: data.length });
+    }).catch(() => {});
+    return () => controller.abort();
+  }, [user?.userId]);
+
   return (
     <div className="flex min-h-screen flex-col bg-void md:flex-row">
-      <Sidebar navItems={navItems} />
+      <Sidebar navItems={navigationItems} />
 
       <main className="flex-1 px-6 py-8 md:px-10">
-        <div className="mx-auto max-w-4xl">
+        <div className="page-enter mx-auto max-w-4xl">
+          <div className="flex justify-end">
+            <button type="button" onClick={onLogout} className="border border-gold-dim px-4 py-2 font-display text-xs uppercase text-gold hover:border-gold">Cerrar sesión</button>
+          </div>
+          {message && <p role="alert" className="mt-4 text-sm text-error">{message}</p>}
           <PageHeader
             eyebrow="Registro I · El despertar"
             title="El Códice del Heredero"
@@ -42,8 +50,8 @@ function LandingPage({ user }) {
           <div className="mt-6">
             <WelcomeCard
               userName={user?.username ?? exampleUser.userName}
-              unlockedAchievements={exampleUser.unlockedAchievements}
-              totalAchievements={exampleUser.totalAchievements}
+              unlockedAchievements={achievementProgress.unlocked}
+              totalAchievements={achievementProgress.total}
             />
           </div>
 
@@ -56,6 +64,7 @@ function LandingPage({ user }) {
                 icon={section.icon}
                 title={section.title}
                 description={section.description}
+                to={section.title.includes('Sal') ? '/achievements' : undefined}
               />
             ))}
           </div>

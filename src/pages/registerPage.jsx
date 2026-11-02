@@ -1,10 +1,10 @@
 import { useState } from 'react';
 import FormField from '../components/formField.jsx';
-import { loginUser, registerUser } from '../services/authService.js';
+import { isUsernameAvailable, registerUser } from '../services/authService.js';
 import { getApiErrorMessage } from '../services/apiClient.js';
 import { useOnlineStatus } from '../hooks/useOnlineStatus.js';
 
-const initialValues = { userName: '', email: '', password: '' };
+const initialValues = { userName: '', email: '', password: '', passwordConfirmation: '' };
 
 const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
@@ -13,7 +13,7 @@ function validateField(fieldName, value) {
 
   if (fieldName === 'userName') {
     if (!trimmedValue) return 'El nombre de usuario es obligatorio.';
-    if (trimmedValue.length < 3) return 'Debe tener al menos 3 caracteres.';
+    if (trimmedValue.length < 4) return 'Debe tener al menos 4 caracteres.';
     if (!/^[a-zA-Z0-9_]+$/.test(trimmedValue)) return 'Solo letras, números y guion bajo.';
   }
 
@@ -28,22 +28,29 @@ function validateField(fieldName, value) {
     if (!/[A-Z]/.test(value) || !/\d/.test(value)) return 'Incluye al menos una mayúscula y un número.';
   }
 
+  if (fieldName === 'passwordConfirmation') {
+    if (!value) return 'Confirma tu contraseña.';
+  }
+
   return '';
 }
 
 function validateAll(values) {
-  return Object.fromEntries(
+  const errors = Object.fromEntries(
     Object.keys(values).map((fieldName) => [fieldName, validateField(fieldName, values[fieldName])]),
   );
+  if (!errors.passwordConfirmation && values.password !== values.passwordConfirmation) {
+    errors.passwordConfirmation = 'Las contraseñas no coinciden.';
+  }
+  return errors;
 }
 
-function RegisterPage({ onLogin }) {
+function RegisterPage({ onLogin, onOpenLogin }) {
   const [formValues, setFormValues] = useState(initialValues);
   const [formErrors, setFormErrors] = useState({});
   const [touchedFields, setTouchedFields] = useState({});
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState('');
-  const [registeredUser, setRegisteredUser] = useState(null);
   const isOnline = useOnlineStatus();
 
   const handleChange = (event) => {
@@ -51,6 +58,9 @@ function RegisterPage({ onLogin }) {
     setFormValues((previousValues) => ({ ...previousValues, [name]: value }));
     if (touchedFields[name]) {
       setFormErrors((previousErrors) => ({ ...previousErrors, [name]: validateField(name, value) }));
+    }
+    if (name === 'password' && touchedFields.passwordConfirmation) {
+      setFormErrors((previousErrors) => ({ ...previousErrors, passwordConfirmation: value === formValues.passwordConfirmation ? '' : 'Las contraseñas no coinciden.' }));
     }
   };
 
@@ -64,19 +74,20 @@ function RegisterPage({ onLogin }) {
     event.preventDefault();
     const nextErrors = validateAll(formValues);
     setFormErrors(nextErrors);
-    setTouchedFields({ userName: true, email: true, password: true });
+    setTouchedFields({ userName: true, email: true, password: true, passwordConfirmation: true });
 
     if (Object.values(nextErrors).some(Boolean) || !isOnline) return;
 
     setIsSubmitting(true);
     setSubmitError('');
     try {
-      const createdUser = await registerUser(formValues);
-      await loginUser({ email: createdUser.email, password: formValues.password });
-      setRegisteredUser(createdUser);
+      if (!await isUsernameAvailable(formValues.userName)) {
+        setFormErrors((errors) => ({ ...errors, userName: 'Este nombre de usuario ya está en uso.' }));
+        return;
+      }
+      onLogin(await registerUser(formValues));
       setFormValues(initialValues);
       setTouchedFields({});
-      onLogin();
     } catch (error) {
       setSubmitError(getApiErrorMessage(error, 'No se pudo crear la cuenta.'));
     } finally {
@@ -110,9 +121,10 @@ function RegisterPage({ onLogin }) {
           </h2>
 
           <form onSubmit={handleSubmit} noValidate className="mt-6 flex flex-col gap-5">
-            <FormField label="Nombre de usuario" autoComplete="username" {...getFieldProps('userName')} />
-            <FormField label="Correo electrónico" type="email" autoComplete="email" {...getFieldProps('email')} />
-            <FormField label="Contraseña" type="password" autoComplete="new-password" {...getFieldProps('password')} />
+            <FormField label="Nombre de usuario" autoComplete="username" helpText="Usa al menos 4 caracteres. Solo letras, números y guion bajo; debe estar disponible." {...getFieldProps('userName')} />
+            <FormField label="Correo electrónico" type="email" autoComplete="email" helpText="Usa un correo válido y único. Lo verificaremos al crear tu cuenta." {...getFieldProps('email')} />
+            <FormField label="Contraseña" type="password" autoComplete="new-password" showPasswordToggle helpText="Mínimo 8 caracteres, con una mayúscula y un número." {...getFieldProps('password')} />
+            <FormField label="Confirmar contraseña" type="password" autoComplete="new-password" showPasswordToggle helpText="Escribe de nuevo la misma contraseña." {...getFieldProps('passwordConfirmation')} />
 
             <button
               type="submit"
@@ -133,16 +145,11 @@ function RegisterPage({ onLogin }) {
                 {submitError}
               </p>
             )}
-            {registeredUser && (
-              <p role="status" className="border border-success px-3 py-2 font-body text-sm text-success">
-                Cuenta creada. Ya puedes iniciar sesión.
-              </p>
-            )}
           </form>
 
           <p className="mt-6 text-center font-display text-sm text-parchment">
             ¿Ya tienes una cuenta?{' '}
-            <button type="button" onClick={() => onLogin('login')} className="ml-1 cursor-pointer uppercase text-parchment underline-offset-4 hover:text-gold hover:underline">
+            <button type="button" onClick={onOpenLogin} className="ml-1 cursor-pointer uppercase text-parchment underline-offset-4 hover:text-gold hover:underline">
               Iniciar sesión
             </button>
           </p>
