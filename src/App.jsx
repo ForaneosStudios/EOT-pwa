@@ -4,5 +4,5 @@ import AppRouter from './app/router/AppRouter.jsx';
 import PwaStatus from './components/pwa/PwaStatus.jsx';
 
 export default function App() {
-  return <BrowserRouter><AuthProvider><PwaStatus /><AppRouter /></AuthProvider></BrowserRouter>;
+  return <BrowserRouter><AuthProvider><PwaStatus><AppRouter /></PwaStatus></AuthProvider></BrowserRouter>;
 }
