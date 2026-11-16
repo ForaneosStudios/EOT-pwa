@@ -3,6 +3,7 @@ import Sidebar from '../components/landing/sidebar.jsx';
 import PageHeader from '../components/landing/pageHeader.jsx';
 import { navigationItems } from '../components/landing/navigation.js';
 import { apiClient, getApiErrorMessage } from '../services/apiClient.js';
+import { AchievementCardsSkeleton, AchievementProgressSkeleton } from '../components/feedback/contentSkeletons.jsx';
 
 const filters = [
   { id: 'all', label: 'Todos los logros' },
@@ -69,7 +70,7 @@ export default function AchievementsPage({ user, onLogout, message }) {
 
         <section className="mt-6 border border-gold-dim bg-panel p-5" aria-label="Progreso de logros">
           <p className="font-display text-xs uppercase text-gold">Progreso de tu leyenda</p>
-          {state.loading ? <p className="mt-3 text-muted">Cargando logros...</p> : <>
+          {state.loading ? <AchievementProgressSkeleton /> : <>
             <p className="mt-3 text-parchment">{unlockedCount} de {state.achievements.length} logros desbloqueados</p>
             <div className="mt-4 h-1.5 overflow-hidden bg-gold-dim/50" role="progressbar" aria-label="Progreso de logros" aria-valuemin="0" aria-valuemax={state.achievements.length} aria-valuenow={unlockedCount}>
               <div className="h-full bg-crimson transition-[width] duration-500" style={{ width: `${state.achievements.length ? (unlockedCount / state.achievements.length) * 100 : 0}%` }} />
@@ -81,7 +82,7 @@ export default function AchievementsPage({ user, onLogout, message }) {
           <div className="mt-6 flex gap-5 overflow-x-auto border-b border-gold-dim" role="tablist" aria-label="Filtrar logros">
             {filters.map((item) => <button key={item.id} type="button" role="tab" aria-selected={filter === item.id} onClick={() => setFilter(item.id)} className={`shrink-0 border-b-2 px-0 pb-3 font-display text-xs uppercase tracking-wide ${filter === item.id ? 'border-crimson text-parchment' : 'border-transparent text-muted hover:text-parchment'}`}>{item.label}</button>)}
           </div>
-          {!state.loading && <div key={filter} className="achievement-list-enter mt-6 grid gap-4 md:grid-cols-2 xl:grid-cols-3">{visibleAchievements.map((achievement) => <AchievementCard key={achievement.achId} achievement={achievement} />)}</div>}
+          {state.loading ? <AchievementCardsSkeleton /> : <div key={filter} className="achievement-list-enter mt-6 grid gap-4 md:grid-cols-2 xl:grid-cols-3">{visibleAchievements.map((achievement) => <AchievementCard key={achievement.achId} achievement={achievement} />)}</div>}
           {!state.loading && visibleAchievements.length === 0 && <p className="mt-6 text-muted">No hay logros en esta categoría.</p>}
         </>}
       </div>

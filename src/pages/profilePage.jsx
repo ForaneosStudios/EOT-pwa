@@ -6,6 +6,7 @@ import FormField from '../components/formField.jsx';
 import { navigationItems } from '../components/landing/navigation.js';
 import { apiClient, getApiErrorMessage } from '../services/apiClient.js';
 import { updatePassword } from '../services/authService.js';
+import { ProfileAchievementsSkeleton } from '../components/feedback/contentSkeletons.jsx';
 
 const avatars = Array.from({ length: 6 }, (_, index) => `/avatars/avatar-${index + 1}.svg`);
 const passwordIsValid = (value) => value.length >= 8 && /[A-Z]/.test(value) && /\d/.test(value);
@@ -103,7 +104,7 @@ export default function ProfilePage({ user, onLogout, onUserUpdate, message }) {
 
         <section className="mt-6 border border-gold-dim bg-panel p-6 sm:p-7" aria-labelledby="achievements-title">
           <div className="flex flex-wrap items-baseline justify-between gap-3"><div><h2 id="achievements-title" className="font-display text-lg uppercase text-parchment">Logros obtenidos</h2><p className="mt-2 text-sm text-muted">Las hazañas ya grabadas en tu legado.</p></div><Link to="/achievements" className="font-display text-xs uppercase text-gold underline">Ver todos</Link></div>
-          {state.error && <div className="mt-5"><p role="alert" className="text-error">{state.error}</p><button type="button" onClick={retry} className="mt-2 text-gold underline">Reintentar</button></div>}{!state.loading && !state.error && unlockedAchievements.length === 0 && <p className="mt-5 text-muted">Aún no has desbloqueado logros.</p>}
+          {state.loading && <ProfileAchievementsSkeleton />}{state.error && <div className="mt-5"><p role="alert" className="text-error">{state.error}</p><button type="button" onClick={retry} className="mt-2 text-gold underline">Reintentar</button></div>}{!state.loading && !state.error && unlockedAchievements.length === 0 && <p className="mt-5 text-muted">Aún no has desbloqueado logros.</p>}
           {!state.loading && !state.error && unlockedAchievements.length > 0 && <ul className="mt-5 divide-y divide-gold-dim border-y border-gold-dim">{unlockedAchievements.map((achievement) => <li key={achievement.achId} className="flex items-center gap-4 py-4"><div className="h-12 w-12 shrink-0 overflow-hidden border border-gold bg-crimson/25">{achievement.achPicture ? <img src={achievement.achPicture} alt="" className="h-full w-full object-cover" /> : <span aria-hidden="true" className="flex h-full items-center justify-center text-gold">✦</span>}</div><div className="min-w-0"><h3 className="font-display text-sm text-parchment">{achievement.achName}</h3><p className="mt-1 text-sm text-muted">{achievement.achDescription}</p></div><time dateTime={achievement.unlockedAt || undefined} className="ml-auto shrink-0 text-right text-xs text-gold">{formatDate(achievement.unlockedAt)}</time></li>)}</ul>}
         </section>
       </div>
