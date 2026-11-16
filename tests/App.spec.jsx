@@ -19,6 +19,7 @@ beforeEach(() => { vi.resetAllMocks(); window.history.replaceState(null, '', '/'
 afterEach(cleanup);
 
 it('restores the profile and closes the session', async () => {
+  window.history.replaceState(null, '', '/app');
   restoreUser.mockResolvedValue({ username: 'hero' });
   logoutUser.mockResolvedValue();
   render(<App />);
@@ -28,6 +29,7 @@ it('restores the profile and closes the session', async () => {
 });
 
 it('navigates from registration to recovery and back', async () => {
+  window.history.replaceState(null, '', '/login');
   restoreUser.mockResolvedValue(null);
   render(<App />);
   fireEvent.click(await screen.findByText('Registrar'));
@@ -41,6 +43,7 @@ it('navigates from registration to recovery and back', async () => {
 });
 
 it('offers login when session restoration fails', async () => {
+  window.history.replaceState(null, '', '/login');
   restoreUser.mockRejectedValue(new Error('offline'));
   render(<App />);
   expect(await screen.findByText('Entrar')).toBeTruthy();

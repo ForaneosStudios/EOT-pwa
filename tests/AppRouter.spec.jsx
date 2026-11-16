@@ -11,6 +11,7 @@ vi.mock('../src/pages/confirmationPage.jsx', () => ({ default: ({ onLogin, statu
 vi.mock('../src/pages/passwordPage.jsx', () => ({ default: ({ onLogin, recovery }) => <button onClick={onLogin}>{recovery ? 'Nueva contraseña' : 'Recuperación'}</button> }));
 vi.mock('../src/pages/profilePage.jsx', () => ({ default: ({ user }) => <p>Perfil {user.username}</p> }));
 vi.mock('../src/pages/achievementsPage.jsx', () => ({ default: () => <p>Logros</p> }));
+vi.mock('../src/pages/publicLandingPage.jsx', () => ({ default: () => <p>Portada pública</p> }));
 
 afterEach(cleanup);
 
@@ -39,9 +40,14 @@ it('updates the profile after registration', () => {
   expect(auth.setUser).toHaveBeenCalledWith({ role: 'USER' });
 });
 
-it('redirects unknown routes to the authenticated home', () => {
+it('redirects unknown routes to the public landing page', () => {
   renderRouter('/unknown', { user: { role: 'USER' } });
-  expect(screen.getByText('Inicio')).toBeTruthy();
+  expect(screen.getByText('Portada pública')).toBeTruthy();
+});
+
+it('renders the public landing page without a session', () => {
+  renderRouter('/');
+  expect(screen.getByText('Portada pública')).toBeTruthy();
 });
 
 it('requires a session for the profile route', () => {
@@ -51,6 +57,14 @@ it('requires a session for the profile route', () => {
 
 it('requires a session for the achievements route', () => {
   renderRouter('/achievements');
+  expect(screen.getByText('Entrar')).toBeTruthy();
+});
+
+it('requires a session for chronicles and archive routes', () => {
+  renderRouter('/chronicles');
+  expect(screen.getByText('Entrar')).toBeTruthy();
+  cleanup();
+  renderRouter('/archive');
   expect(screen.getByText('Entrar')).toBeTruthy();
 });
 
