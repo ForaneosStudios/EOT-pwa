@@ -10,19 +10,25 @@ import ProfilePage from '../../pages/profilePage.jsx';
 import AchievementsPage from '../../pages/achievementsPage.jsx';
 import ForumPage from '../../pages/forumPage.jsx';
 import ForumThreadPage from '../../pages/forumThreadPage.jsx';
+import PublicLandingPage from '../../pages/publicLandingPage.jsx';
+import ChroniclesPage from '../../pages/chroniclesPage.jsx';
+import ArchivePage from '../../pages/archivePage.jsx';
+import AdminPage from '../../pages/adminPage.jsx';
 
 function LoginRoute() {
-  const { setUser, message, setMessage } = useAuth();
+  const { user, setUser, message, setMessage } = useAuth();
   const navigate = useNavigate();
   const { state } = useLocation();
-  const destination = typeof state?.from === 'string' && state.from.startsWith('/') && !state.from.startsWith('//') ? state.from : '/';
+  if (user) return <Navigate to="/app" replace />;
+  const destination = typeof state?.from === 'string' && state.from.startsWith('/') && !state.from.startsWith('//') ? state.from : '/app';
   return <LoginPage message={message} onForgot={() => { void navigate('/auth/forgot-password'); }} onRegister={() => { setMessage(''); void navigate('/register'); }} onLogin={(profile) => { setUser(profile); setMessage(''); void navigate(destination, { replace: true }); }} />;
 }
 
 function RegisterRoute() {
-  const { setUser, setMessage } = useAuth();
+  const { user, setUser, setMessage } = useAuth();
   const navigate = useNavigate();
-  return <RegisterPage onLogin={(profile) => { setUser(profile); void navigate('/', { replace: true }); }} onOpenLogin={() => { setMessage(''); void navigate('/login'); }} />;
+  if (user) return <Navigate to="/app" replace />;
+  return <RegisterPage onLogin={(profile) => { setUser(profile); void navigate('/app', { replace: true }); }} onOpenLogin={() => { setMessage(''); void navigate('/login'); }} />;
 }
 
 function CallbackRoute({ recovery = false }) {
@@ -33,22 +39,32 @@ function CallbackRoute({ recovery = false }) {
   return <ConfirmationPage status={callbackStatus} onLogin={onLogin} />;
 }
 
+function useLogoutToLanding() {
+  const { logout } = useAuth();
+  const navigate = useNavigate();
+  return async () => {
+    await logout();
+    void navigate('/', { replace: true });
+  };
+}
+
 function HomeRoute() {
-  const { user, logout, message } = useAuth();
-  return <LandingPage user={user} onLogout={logout} message={message} />;
+  const { user, message } = useAuth();
+  return <LandingPage user={user} onLogout={useLogoutToLanding()} message={message} />;
 }
 
 function ProfileRoute() {
-  const { user, logout, message, setUser } = useAuth();
-  return <ProfilePage user={user} onLogout={logout} onUserUpdate={setUser} message={message} />;
+  const { user, message, setUser } = useAuth();
+  return <ProfilePage user={user} onLogout={useLogoutToLanding()} onUserUpdate={setUser} message={message} />;
 }
 
 function AchievementsRoute() {
-  const { user, logout, message } = useAuth();
-  return <AchievementsPage user={user} onLogout={logout} message={message} />;
+  const { user, message } = useAuth();
+  return <AchievementsPage user={user} onLogout={useLogoutToLanding()} message={message} />;
 }
-function ForumRoute() { const { user, logout, message } = useAuth(); return <ForumPage user={user} onLogout={logout} message={message} />; }
-function ForumThreadRoute() { const { user, logout } = useAuth(); return <ForumThreadPage user={user} onLogout={logout} />; }
+function ForumRoute() { const { user, message } = useAuth(); return <ForumPage user={user} onLogout={useLogoutToLanding()} message={message} />; }
+function ForumThreadRoute() { const { user } = useAuth(); return <ForumThreadPage user={user} onLogout={useLogoutToLanding()} />; }
+function AdminRoute() { const { user } = useAuth(); return <AdminPage user={user} onLogout={useLogoutToLanding()} />; }
 
 function ForgotRoute() {
   const navigate = useNavigate();
@@ -57,12 +73,14 @@ function ForgotRoute() {
 
 export default function AppRouter() {
   return <Routes>
+    <Route path="/" element={<PublicLandingPage />} />
     <Route path="/login" element={<LoginRoute />} />
     <Route path="/register" element={<RegisterRoute />} />
     <Route path="/auth/confirm" element={<CallbackRoute />} />
     <Route path="/auth/reset-password" element={<CallbackRoute recovery />} />
     <Route path="/auth/forgot-password" element={<ForgotRoute />} />
-    <Route element={<ProtectedRoute />}><Route path="/" element={<HomeRoute />} /><Route path="/achievements" element={<AchievementsRoute />} /><Route path="/forum" element={<ForumRoute />} /><Route path="/forum/:threadId" element={<ForumThreadRoute />} /><Route path="/profile" element={<ProfileRoute />} /></Route>
+    <Route element={<ProtectedRoute />}><Route path="/app" element={<HomeRoute />} /><Route path="/achievements" element={<AchievementsRoute />} /><Route path="/chronicles" element={<ChroniclesPage />} /><Route path="/archive" element={<ArchivePage />} /><Route path="/forum" element={<ForumRoute />} /><Route path="/forum/:threadId" element={<ForumThreadRoute />} /><Route path="/profile" element={<ProfileRoute />} /></Route>
+    <Route element={<ProtectedRoute roles={['ADMIN']} />}><Route path="/admin" element={<AdminRoute />} /></Route>
     <Route path="*" element={<Navigate to="/" replace />} />
   </Routes>;
 }

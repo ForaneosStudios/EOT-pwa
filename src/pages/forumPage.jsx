@@ -4,7 +4,7 @@ import Sidebar from '../components/landing/sidebar.jsx';
 import PageHeader from '../components/landing/pageHeader.jsx';
 import { navigationItems } from '../components/landing/navigation.js';
 import { apiClient, getApiErrorMessage } from '../services/apiClient.js';
-import LoadingIndicator from '../components/feedback/loadingIndicator.jsx';
+import { ForumThreadsSkeleton } from '../components/feedback/contentSkeletons.jsx';
 
 const TITLE_LIMITS = { min: 5, max: 120 };
 const CONTENT_LIMITS = { min: 10, max: 2000 };
@@ -93,7 +93,7 @@ export default function ForumPage({ user, onLogout, message }) {
       <button onClick={() => setIsModalOpen(true)} className="h-11 border border-gold bg-crimson px-4 font-display text-xs uppercase">+ Nuevo tema</button>
     </div></section>
     {state.error && <p role="alert" className="mt-4 text-error">{state.error}</p>}
-    {state.loading ? <LoadingIndicator label="Cargando conversaciones..." /> : <section className="mt-6">
+    {state.loading ? <ForumThreadsSkeleton /> : <section className="mt-6">
       {threads.length === 0 ? <div className="forum-empty border border-gold-dim bg-panel p-8 text-center"><h2 className="font-display text-lg text-gold">No se encontraron conversaciones</h2><p className="mt-2 text-sm text-muted">Prueba con otros filtros o inicia la primera conversación.</p></div> : <div className="forum-results grid gap-3">{threads.map((thread) => <Link key={thread.threadId} to={`/forum/${thread.threadId}`} state={{ forumSearch }} className="forum-card border border-gold-dim bg-panel p-5 hover:border-gold"><p className="text-xs uppercase text-gold">{thread.categoryName || 'Comunidad'} {thread.isLocked ? '· Cerrado' : ''}</p><h2 className="mt-2 font-display text-lg">{thread.title}</h2><p className="mt-2 text-sm text-muted">{thread.username}</p></Link>)}</div>}
       <div className="mt-6 flex gap-4"><button disabled={!state.data || state.data.first} onClick={() => updateFilters({ ...filters, page: filters.page - 1 })} className="text-gold disabled:text-muted">Anterior</button><button disabled={!state.data || state.data.last} onClick={() => updateFilters({ ...filters, page: filters.page + 1 })} className="text-gold disabled:text-muted">Siguiente</button></div>
     </section>}
