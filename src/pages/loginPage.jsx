@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { Link } from 'react-router-dom';
 import FormField from '../components/formField.jsx';
 import { loginUser } from '../services/authService.js';
 import { getApiErrorMessage } from '../services/apiClient.js';
@@ -44,7 +45,7 @@ export default function LoginPage({ onLogin, onRegister, onForgot, message }) {
     <main className="min-h-screen bg-void px-4 py-8 sm:px-8 lg:px-0">
       <div className="mx-auto max-w-3xl">
         <header className="border-b border-gold-dim pb-4">
-          <p className="font-display text-xs uppercase text-gold">Portal del Inframundo</p>
+          <div className="flex items-center justify-between gap-4"><p className="font-display text-xs uppercase text-gold">Portal del Inframundo</p><Link to="/" className="font-display text-xs uppercase text-gold hover:text-parchment">← Volver a la portada</Link></div>
           <h1 className="mt-3 font-display text-2xl text-parchment sm:text-3xl">Regreso del Heredero</h1>
         </header>
         <section className="mx-auto mt-6 max-w-md border border-gold-dim bg-panel px-6 pb-10 pt-5 sm:px-12">
