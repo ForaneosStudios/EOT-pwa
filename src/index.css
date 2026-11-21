@@ -117,7 +117,7 @@ body { padding-inline: env(safe-area-inset-left) env(safe-area-inset-right); }
 
 @media (max-width: 600px) {
   .public-nav { min-height: 4.65rem; }.public-brand-mark { width: 3rem; height: 3rem; }.public-nav-actions { gap: .5rem; }.public-install { min-height: 2.75rem; padding: .5rem .6rem; font-size: .54rem; }.public-button-small { min-height: 2.75rem; padding: .48rem .66rem; font-size: .55rem; }.public-login { font-size: .55rem; }
-  .public-hero { min-height: 42rem; padding: 7rem 1.25rem 4rem; }.public-section { padding-block: 4.75rem; }.public-chapter h3 { font-size: 1.12rem; }.public-community { gap: 4rem; padding-block: 5rem; }.public-community-mark { width: min(17rem, 74vw); }.public-community-copy > p:nth-of-type(2) { font-size: 1rem; }.public-footer { padding: 2rem 4.75rem 2rem 1.25rem; text-align: left; }.public-footer a { right: .9rem; bottom: .9rem; padding: .7rem .8rem; font-size: .52rem; }
+  .public-hero { min-height: 42rem; padding: 7rem 1.25rem 4rem; }.public-section { padding-block: 4.75rem; }.public-chapter h3 { font-size: 1.12rem; }.public-community { gap: 4rem; padding-block: 5rem; }.public-community-mark { width: min(17rem, 74vw); }.public-community-copy > p:nth-of-type(2) { font-size: 1rem; }.public-footer { padding: 2rem 4.75rem 2rem 1.25rem; text-align: left; }.public-footer a { right: .9rem; bottom: .9rem; min-height: 2.75rem; padding: .7rem .8rem; font-size: .52rem; }
 }
 
 @media (max-width: 390px) {

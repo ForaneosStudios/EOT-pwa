@@ -19,8 +19,10 @@ function LoginRoute() {
   const { user, setUser, message, setMessage } = useAuth();
   const navigate = useNavigate();
   const { state } = useLocation();
-  if (user) return <Navigate to="/app" replace />;
+  // The page the visitor was heading to before being asked to sign in (same-origin paths only).
   const destination = typeof state?.from === 'string' && state.from.startsWith('/') && !state.from.startsWith('//') ? state.from : '/app';
+  // Once the session exists this route re-renders; it must honour the destination as well.
+  if (user) return <Navigate to={destination} replace />;
   return <LoginPage message={message} onForgot={() => { void navigate('/auth/forgot-password'); }} onRegister={() => { setMessage(''); void navigate('/register'); }} onLogin={(profile) => { setUser(profile); setMessage(''); void navigate(destination, { replace: true }); }} />;
 }
 
