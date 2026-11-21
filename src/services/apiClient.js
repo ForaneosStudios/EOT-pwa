@@ -1,5 +1,6 @@
 import axios from 'axios';
 import { supabase } from './supabase.js';
+import { recordServerDate } from './offline/serverClock.js';
 
 export const AUTH_REQUIRED_EVENT = 'eot:auth-required';
 
@@ -39,6 +40,21 @@ async function refreshAccessToken() {
 function notifyAuthenticationRequired() {
   window.dispatchEvent(new CustomEvent(AUTH_REQUIRED_EVENT));
 }
+
+// Track the server clock from every response (errors included) for X-Client-Intent-At.
+// Registered before the auth interceptor; it never alters the response or the error.
+function recordServerClock(response) {
+  try {
+    recordServerDate(response?.headers?.date);
+  } catch {
+    // Clock tracking is best effort and must never break a request.
+  }
+}
+
+apiClient.interceptors.response.use(
+  (response) => { recordServerClock(response); return response; },
+  (error) => { recordServerClock(error?.response); return Promise.reject(error); },
+);
 
 apiClient.interceptors.response.use(
   (response) => response,

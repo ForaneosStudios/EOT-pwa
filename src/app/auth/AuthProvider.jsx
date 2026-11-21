@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { AuthContext } from './authContext.js';
 import { AUTH_REQUIRED_EVENT, getApiErrorMessage } from '../../services/apiClient.js';
+import { outbox } from '../../services/offline/index.js';
 import { logoutUser, restoreUser, subscribeToAuthChanges, takeConfirmationResult, verifyConfirmation } from '../../services/authService.js';
 
 // Capture and remove one-use URL tokens before rendering the application.
@@ -42,7 +43,20 @@ export function AuthProvider({ children }) {
     return () => { unsubscribe(); window.removeEventListener(AUTH_REQUIRED_EVENT, requireLogin); };
   }, []);
 
+  // Returns false when the user keeps the session to avoid losing unsent actions.
   const logout = useCallback(async () => {
+    const unsent = outbox.getSnapshot().items.length;
+    if (unsent > 0) {
+      const noun = unsent === 1 ? 'acción sin enviar' : 'acciones sin enviar';
+      if (!window.confirm(`Tienes ${unsent} ${noun}. Si cierras sesión se descartarán de este dispositivo. ¿Cerrar sesión?`)) {
+        return false;
+      }
+    }
+    try {
+      await outbox.clearOwner();
+    } catch {
+      // Signing out matters more; the next account to sign in removes leftovers anyway.
+    }
     try {
       await logoutUser();
       setUser(null);

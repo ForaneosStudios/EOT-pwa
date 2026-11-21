@@ -5,6 +5,9 @@ import PageHeader from '../components/landing/pageHeader.jsx';
 import { navigationItems } from '../components/landing/navigation.js';
 import { apiClient, getApiErrorMessage } from '../services/apiClient.js';
 import { ForumThreadsSkeleton } from '../components/feedback/contentSkeletons.jsx';
+import { forumMutations } from '../services/mutations.js';
+import { QUEUED_MESSAGE, OUTBOX_STATUS_LABELS, outboxErrorMessage } from '../services/offline/messages.js';
+import { useOutbox, useOutboxSynced } from '../hooks/useOutbox.js';
 
 const TITLE_LIMITS = { min: 5, max: 120 };
 const CONTENT_LIMITS = { min: 10, max: 2000 };
@@ -31,6 +34,11 @@ export default function ForumPage({ user, onLogout, message }) {
   const [form, setForm] = useState({ title: '', content: '' });
   const [creating, setCreating] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [notice, setNotice] = useState('');
+  const [reloadKey, setReloadKey] = useState(0);
+  const { items: outboxItems } = useOutbox();
+  const pendingThreads = outboxItems.filter((item) => item.meta?.kind === 'thread:create');
+  useOutboxSynced(({ item }) => { if (item?.meta?.kind?.startsWith('thread:')) setReloadKey((value) => value + 1); });
 
   const updateFilters = useCallback((nextFilters, replace = false) => {
     const next = new URLSearchParams();
@@ -59,7 +67,7 @@ export default function ForumPage({ user, onLogout, message }) {
     }).then(({ data }) => active && setState({ loading: false, data, error: '' }))
       .catch((error) => active && setState({ loading: false, data: null, error: getApiErrorMessage(error, 'No se pudieron cargar las conversaciones.') }));
     return () => { active = false; };
-  }, [filters, user.userId]);
+  }, [filters, user.userId, reloadKey]);
 
   const titleValid = form.title.trim().length >= TITLE_LIMITS.min && form.title.trim().length <= TITLE_LIMITS.max;
   const contentValid = form.content.trim().length >= CONTENT_LIMITS.min && form.content.trim().length <= CONTENT_LIMITS.max;
@@ -70,9 +78,10 @@ export default function ForumPage({ user, onLogout, message }) {
     if (!titleValid || !contentValid) return;
     setCreating(true);
     try {
-      await apiClient.post('/threads', { userId: user.userId, title: form.title.trim(), content: form.content.trim() });
+      const result = await forumMutations.createThread({ userId: user.userId, title: form.title.trim(), content: form.content.trim() });
       setForm({ title: '', content: '' });
       setIsModalOpen(false);
+      setNotice(result.status === 'queued' ? `Tu tema se publicará cuando vuelva la conexión. ${QUEUED_MESSAGE}` : '');
       updateFilters({ ...filters, page: 0 });
     } catch (error) {
       setState((value) => ({ ...value, error: getApiErrorMessage(error, 'No se pudo crear el tema.') }));
@@ -93,6 +102,8 @@ export default function ForumPage({ user, onLogout, message }) {
       <button onClick={() => setIsModalOpen(true)} className="h-11 border border-gold bg-crimson px-4 font-display text-xs uppercase">+ Nuevo tema</button>
     </div></section>
     {state.error && <p role="alert" className="mt-4 text-error">{state.error}</p>}
+    {notice && <output className="mt-4 block text-warning">{notice}</output>}
+    {pendingThreads.length > 0 && <section aria-label="Temas pendientes de publicar" className="mt-6 grid gap-3">{pendingThreads.map((item) => <article key={item.id} className="border border-dashed border-warning bg-panel p-5 opacity-80"><p className="text-xs uppercase text-warning">{OUTBOX_STATUS_LABELS[item.status]}{item.lastError ? ` · ${outboxErrorMessage(item.lastError)}` : ''}</p><h2 className="mt-2 font-display text-lg">{item.data?.title}</h2><p className="mt-2 text-sm text-muted">{user.username}</p></article>)}</section>}
     {state.loading ? <ForumThreadsSkeleton /> : <section className="mt-6">
       {threads.length === 0 ? <div className="forum-empty border border-gold-dim bg-panel p-8 text-center"><h2 className="font-display text-lg text-gold">No se encontraron conversaciones</h2><p className="mt-2 text-sm text-muted">Prueba con otros filtros o inicia la primera conversación.</p></div> : <div className="forum-results grid gap-3">{threads.map((thread) => <Link key={thread.threadId} to={`/forum/${thread.threadId}`} state={{ forumSearch }} className="forum-card border border-gold-dim bg-panel p-5 hover:border-gold"><p className="text-xs uppercase text-gold">{thread.categoryName || 'Comunidad'} {thread.isLocked ? '· Cerrado' : ''}</p><h2 className="mt-2 font-display text-lg">{thread.title}</h2><p className="mt-2 text-sm text-muted">{thread.username}</p></Link>)}</div>}
       <div className="mt-6 flex gap-4"><button disabled={!state.data || state.data.first} onClick={() => updateFilters({ ...filters, page: filters.page - 1 })} className="text-gold disabled:text-muted">Anterior</button><button disabled={!state.data || state.data.last} onClick={() => updateFilters({ ...filters, page: filters.page + 1 })} className="text-gold disabled:text-muted">Siguiente</button></div>

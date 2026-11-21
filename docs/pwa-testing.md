@@ -13,10 +13,12 @@ Para probar instalación y conexión sin depender del modo de desarrollo:
    requieren conexión; una indicación de conexión no garantiza que el servidor
    esté disponible.
 4. Reactiva la red y verifica que el aviso desaparezca.
+5. Con sesión iniciada y sin red, publica un comentario: queda como pendiente en
+   el aviso superior. Al reactivar la red se envía una sola vez.
+6. Para comprobar que no hay duplicados, usa throttling «Slow 3G», publica y corta
+   la red antes de la respuesta. Al reconectar, la respuesta repetida debe llevar
+   `Idempotency-Replayed: true` y el comentario debe existir una sola vez.
 
-Esta rama no implementa una cola de escrituras. Las operaciones de autenticación
-no deben almacenarse para reenvío y las futuras operaciones del foro necesitan
-una estrategia de identidad, confirmación y prevención de duplicados antes de
-sincronizarse automáticamente. Los iconos y la política de caché de API se
-incluyen en el PR de perfil y deben integrarse antes de validar la instalación
-completa de esta rama.
+Las escrituras de la API se encolan con una Idempotency-Key (ver
+`docs/tecnica/04-pwa-calidad-y-pruebas.md`, sección «Cola de escrituras offline e
+idempotencia»). Las operaciones de autenticación nunca se almacenan para reenvío.

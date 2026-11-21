@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useOnlineStatus } from '../../hooks/useOnlineStatus.js';
 import { PwaInstallContext } from './pwaInstallContext.js';
+import PendingActions from './PendingActions.jsx';
 
 export default function PwaStatus({ children }) {
   const online = useOnlineStatus();
@@ -23,5 +24,5 @@ export default function PwaStatus({ children }) {
   }
 
   const value = { canInstall: Boolean(installPrompt), installing, install };
-  return <PwaInstallContext.Provider value={value}>{!online && <output className="block border-b border-warning bg-panel px-4 py-3 text-center text-sm text-warning">Sin conexión. Algunas funciones y datos necesitan internet.</output>}{children}</PwaInstallContext.Provider>;
+  return <PwaInstallContext.Provider value={value}>{!online && <output className="block border-b border-warning bg-panel px-4 py-3 text-center text-sm text-warning">Sin conexión. Algunas funciones y datos necesitan internet. Lo que publiques se enviará al reconectar.</output>}<PendingActions />{children}</PwaInstallContext.Provider>;
 }
