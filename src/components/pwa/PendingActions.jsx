@@ -31,7 +31,7 @@ export default function PendingActions() {
   return <section aria-label="Acciones sin conexión" className="border-b border-warning bg-panel px-4 py-2 text-sm text-warning">
     <div className="mx-auto flex max-w-5xl flex-wrap items-center justify-between gap-2">
       <output>{summary}{paused ? ' · Inicia sesión para enviarlas.' : ''}</output>
-      <button type="button" onClick={() => setOpen((value) => !value)} aria-expanded={open} className="text-xs uppercase text-gold underline">
+      <button type="button" onClick={() => setOpen((value) => !value)} aria-expanded={open} className="py-2 text-xs uppercase text-gold underline">
         {open ? 'Ocultar' : 'Ver detalles'}
       </button>
     </div>
@@ -43,7 +43,7 @@ export default function PendingActions() {
           <small className={`ml-2 ${item.status === 'failed' ? 'text-error' : 'text-warning'}`}>{OUTBOX_STATUS_LABELS[item.status] || item.status}</small>
           {item.lastError && <small className="block text-muted">{outboxErrorMessage(item.lastError)}</small>}
         </span>
-        <span className="flex gap-3 text-xs">
+        <span className="flex flex-wrap gap-x-4 text-xs [&>button]:py-2">
           {canRetry(item) && <button type="button" onClick={() => void run(() => outbox.retry(item.id))} className="text-gold">{retryLabel(item)}</button>}
           {item.status === 'queued' && <button type="button" onClick={() => void run(() => outbox.sendNow())} className="text-gold">Enviar ahora</button>}
           {item.status !== 'sending' && <button type="button" onClick={() => void run(() => outbox.discard(item.id))} className="text-error">Descartar</button>}

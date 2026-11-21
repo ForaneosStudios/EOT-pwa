@@ -29,7 +29,7 @@ export default function PasswordPage({ recovery, status, onLogin }) {
     }
   }
 
-  return <main className="min-h-screen bg-void px-4 py-10 text-parchment">
+  return <main className="min-h-dvh bg-void px-4 py-10 text-parchment">
     <section className="mx-auto max-w-md border border-gold-dim bg-panel p-8">
       <h1 className="font-display text-xl text-gold">{recovery ? 'Cambiar contraseña' : 'Recuperar contraseña'}</h1>
       {recovery && status === 'checking' && <p className="mt-4">Verificando enlace...</p>}

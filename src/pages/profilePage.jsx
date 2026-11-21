@@ -79,7 +79,7 @@ export default function ProfilePage({ user, onLogout, onUserUpdate, message }) {
 
   const retry = () => { setState((current) => ({ ...current, loading: true, error: '' })); setAttempt((value) => value + 1); };
 
-  return <div className="flex min-h-screen flex-col bg-void md:flex-row">
+  return <div className="flex min-h-dvh flex-col bg-void md:flex-row">
     <Sidebar navItems={navigationItems} />
     <main className="flex-1 px-6 py-8 md:px-10">
       <div className="page-enter mx-auto max-w-5xl">

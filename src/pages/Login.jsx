@@ -37,7 +37,7 @@ export default function Login({ onRegister, onLogin }) {
 
   return (
     <main
-      className="min-h-screen bg-[#100d0f] px-5 py-10
+      className="min-h-dvh bg-[#100d0f] px-5 py-10
                  text-[#e9dcc5] sm:px-10"
       style={{ fontFamily: "'Cinzel', serif" }}
     >
