@@ -29,6 +29,10 @@ test.describe('phone layout', () => {
 
   test('the world banner keeps its proportions so its lettering is not cropped', async ({ page }) => {
     await page.goto('/');
+    // The image is lazy-loaded: bring it into view and wait for it before measuring.
+    const banner = page.locator('.public-world-banner img');
+    await banner.scrollIntoViewIfNeeded();
+    await banner.evaluate((img) => img.decode());
     const ratio = await page.evaluate(() => {
       const img = document.querySelector('.public-world-banner img');
       const box = img.getBoundingClientRect();
