@@ -26,7 +26,7 @@ export default defineConfig({
       },
       workbox: {
         // 1. ESTRATEGIA CACHE-FIRST (APP SHELL)
-        globPatterns: ['**/*.{js,css,html,ico,png,svg}'],
+        globPatterns: ['**/*.{js,css,html,ico,png,svg,jpg,jpeg}'],
         
         // API responses are network-only to prevent cross-session data leaks.
         runtimeCaching: [

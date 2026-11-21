@@ -3,6 +3,9 @@ import Sidebar from '../components/landing/sidebar.jsx';
 import PageHeader from '../components/landing/pageHeader.jsx';
 import { navigationItems } from '../components/landing/navigation.js';
 import { apiClient, getApiErrorMessage } from '../services/apiClient.js';
+import { adminMutations } from '../services/mutations.js';
+import { QUEUED_MESSAGE } from '../services/offline/messages.js';
+import { useOutboxSynced } from '../hooks/useOutbox.js';
 import { ForumThreadsSkeleton } from '../components/feedback/contentSkeletons.jsx';
 
 const tabs = [
@@ -64,12 +67,20 @@ export default function AdminPage({ user, onLogout }) {
     return () => { active = false; };
   }, []);
 
+  // Reload once an action queued while offline is confirmed by the server.
+  useOutboxSynced(({ item }) => { if (item?.meta?.kind?.startsWith('admin:') || item?.meta?.kind?.startsWith('thread:')) void load(); });
+
   async function runAction(action, successMessage) {
+    if (saving) return;
     setSaving(true);
     setError('');
     setNotice('');
     try {
-      await action();
+      const result = await action();
+      if (result?.status === 'queued') {
+        setNotice(`La acción quedó en cola. ${QUEUED_MESSAGE}`);
+        return;
+      }
       setNotice(successMessage);
       await load();
     } catch (requestError) {
@@ -81,12 +92,12 @@ export default function AdminPage({ user, onLogout }) {
 
   function removeUser(account) {
     if (account.userId === user.userId || !window.confirm(`¿Eliminar la cuenta de ${account.username}?`)) return;
-    void runAction(() => apiClient.delete(`/users/${account.userId}`), 'La cuenta fue eliminada.');
+    void runAction(() => adminMutations.deleteUser(account), 'La cuenta fue eliminada.');
   }
 
   function removeThread(thread) {
     if (!window.confirm(`¿Eliminar el hilo “${thread.title}”?`)) return;
-    void runAction(() => apiClient.delete(`/threads/${thread.threadId}`), 'El hilo fue eliminado.');
+    void runAction(() => adminMutations.deleteThread(thread), 'El hilo fue eliminado.');
   }
 
   function submitAchievement(event) {
@@ -97,13 +108,13 @@ export default function AdminPage({ user, onLogout }) {
       targetValue: achievementForm.targetValue ? Number(achievementForm.targetValue) : null,
       progressLabel: achievementForm.progressLabel.trim() || null,
     };
-    void runAction(async () => { await apiClient.post('/achievements', payload); setAchievementForm(blankAchievement); }, 'El logro fue añadido al catálogo.');
+    void runAction(async () => { const result = await adminMutations.createAchievement(payload); setAchievementForm(blankAchievement); return result; }, 'El logro fue añadido al catálogo.');
   }
 
   function submitCategory(event) {
     event.preventDefault();
     const payload = { categoryName: categoryForm.categoryName.trim(), description: categoryForm.description.trim() || null };
-    void runAction(async () => { await apiClient.post('/categories', payload); setCategoryForm(blankCategory); }, 'La categoría fue creada.');
+    void runAction(async () => { const result = await adminMutations.createCategory(payload); setCategoryForm(blankCategory); return result; }, 'La categoría fue creada.');
   }
 
   const stats = [
@@ -130,9 +141,9 @@ export default function AdminPage({ user, onLogout }) {
 
         {activeTab === 'users' && <section className="mt-6 overflow-x-auto border border-gold-dim bg-panel"><table className="w-full min-w-160 text-left text-sm"><caption className="sr-only">Cuentas de usuario</caption><thead className="border-b border-gold-dim text-xs uppercase text-gold"><tr><th className="p-4">Usuario</th><th className="p-4">Correo</th><th className="p-4">Rol</th><th className="p-4">Registro</th><th className="p-4"><span className="sr-only">Acciones</span></th></tr></thead><tbody>{data.users.map((account) => <tr key={account.userId} className="border-b border-gold-dim/60 last:border-0"><td className="p-4 text-parchment">{account.username}</td><td className="p-4 text-muted">{account.email}</td><td className="p-4"><span className="border border-gold-dim px-2 py-1 text-xs text-gold">{account.role}</span></td><td className="p-4 text-muted">{formatDate(account.createdAt)}</td><td className="p-4 text-right">{account.userId === user.userId ? <span className="text-xs text-muted">Tu cuenta</span> : <button type="button" disabled={saving} onClick={() => removeUser(account)} className="text-xs text-error disabled:opacity-60">Eliminar</button>}</td></tr>)}</tbody></table></section>}
 
-        {activeTab === 'forum' && <section className="mt-6 grid gap-3">{data.threads.length === 0 ? <p className="border border-gold-dim bg-panel p-6 text-muted">No hay conversaciones registradas.</p> : data.threads.map((thread) => <article key={thread.threadId} className="border border-gold-dim bg-panel p-5"><div className="flex flex-wrap items-start justify-between gap-4"><div><p className="text-xs uppercase text-gold">{thread.categoryName || 'Sin categoría'} · {thread.username}</p><h2 className="mt-2 font-display text-lg text-parchment">{thread.title}</h2><p className="mt-2 line-clamp-2 text-sm text-muted">{thread.content}</p></div><div className="flex gap-3 text-xs"><button type="button" disabled={saving} onClick={() => void runAction(() => apiClient.patch(`/threads/${thread.threadId}/lock`, { locked: !thread.isLocked }), thread.isLocked ? 'El hilo fue reabierto.' : 'El hilo fue bloqueado.')} className="text-gold disabled:opacity-60">{thread.isLocked ? 'Reabrir' : 'Bloquear'}</button><button type="button" disabled={saving} onClick={() => removeThread(thread)} className="text-error disabled:opacity-60">Eliminar</button></div></div></article>)}</section>}
+        {activeTab === 'forum' && <section className="mt-6 grid gap-3">{data.threads.length === 0 ? <p className="border border-gold-dim bg-panel p-6 text-muted">No hay conversaciones registradas.</p> : data.threads.map((thread) => <article key={thread.threadId} className="border border-gold-dim bg-panel p-5"><div className="flex flex-wrap items-start justify-between gap-4"><div><p className="text-xs uppercase text-gold">{thread.categoryName || 'Sin categoría'} · {thread.username}</p><h2 className="mt-2 font-display text-lg text-parchment">{thread.title}</h2><p className="mt-2 line-clamp-2 text-sm text-muted">{thread.content}</p></div><div className="flex gap-3 text-xs"><button type="button" disabled={saving} onClick={() => void runAction(() => adminMutations.lockThread(thread, !thread.isLocked), thread.isLocked ? 'El hilo fue reabierto.' : 'El hilo fue bloqueado.')} className="text-gold disabled:opacity-60">{thread.isLocked ? 'Reabrir' : 'Bloquear'}</button><button type="button" disabled={saving} onClick={() => removeThread(thread)} className="text-error disabled:opacity-60">Eliminar</button></div></div></article>)}</section>}
 
-        {activeTab === 'content' && <section className="mt-6 grid gap-6 lg:grid-cols-2"><form onSubmit={submitAchievement} className="border border-gold-dim bg-panel p-5"><h2 className="font-display text-lg uppercase text-parchment">Añadir logro</h2><div className="mt-5 grid gap-3"><input required minLength="2" maxLength="100" value={achievementForm.achName} onChange={(event) => setAchievementForm((value) => ({ ...value, achName: event.target.value }))} placeholder="Nombre del logro" className="border border-gold-dim bg-void p-3" /><textarea required maxLength="500" value={achievementForm.achDescription} onChange={(event) => setAchievementForm((value) => ({ ...value, achDescription: event.target.value }))} placeholder="Descripción" className="min-h-24 border border-gold-dim bg-void p-3" /><input type="url" value={achievementForm.achPicture} onChange={(event) => setAchievementForm((value) => ({ ...value, achPicture: event.target.value }))} placeholder="URL de imagen (opcional)" className="border border-gold-dim bg-void p-3" /><div className="grid gap-3 sm:grid-cols-2"><input type="number" min="1" value={achievementForm.targetValue} onChange={(event) => setAchievementForm((value) => ({ ...value, targetValue: event.target.value }))} placeholder="Meta (opcional)" className="border border-gold-dim bg-void p-3" /><input maxLength="50" value={achievementForm.progressLabel} onChange={(event) => setAchievementForm((value) => ({ ...value, progressLabel: event.target.value }))} placeholder="Etiqueta de progreso" className="border border-gold-dim bg-void p-3" /></div><label className="flex items-center gap-2 text-sm text-muted"><input type="checkbox" checked={achievementForm.isAchHidden} onChange={(event) => setAchievementForm((value) => ({ ...value, isAchHidden: event.target.checked }))} /> Ocultar hasta desbloquear</label><button disabled={saving} className="justify-self-start border border-gold bg-crimson px-4 py-3 font-display text-xs uppercase disabled:opacity-60">Guardar logro</button></div></form><form onSubmit={submitCategory} className="border border-gold-dim bg-panel p-5"><h2 className="font-display text-lg uppercase text-parchment">Categorías del foro</h2><div className="mt-5 grid gap-3"><input required minLength="2" maxLength="100" value={categoryForm.categoryName} onChange={(event) => setCategoryForm((value) => ({ ...value, categoryName: event.target.value }))} placeholder="Nombre de categoría" className="border border-gold-dim bg-void p-3" /><textarea maxLength="500" value={categoryForm.description} onChange={(event) => setCategoryForm((value) => ({ ...value, description: event.target.value }))} placeholder="Descripción (opcional)" className="min-h-24 border border-gold-dim bg-void p-3" /><button disabled={saving} className="justify-self-start border border-gold bg-crimson px-4 py-3 font-display text-xs uppercase disabled:opacity-60">Crear categoría</button></div><ul className="mt-6 divide-y divide-gold-dim border-y border-gold-dim">{data.categories.map((category) => <li key={category.categoryId} className="flex items-center justify-between gap-3 py-3"><span><strong className="font-display text-sm text-parchment">{category.categoryName}</strong><small className="mt-1 block text-muted">{category.description}</small></span><button type="button" disabled={saving} onClick={() => window.confirm(`¿Eliminar la categoría ${category.categoryName}?`) && void runAction(() => apiClient.delete(`/categories/${category.categoryId}`), 'La categoría fue eliminada.')} className="text-xs text-error disabled:opacity-60">Eliminar</button></li>)}</ul></form><article className="border border-warning bg-panel p-5 lg:col-span-2"><h2 className="font-display text-sm uppercase text-warning">Crónicas y Archivo/Extras</h2><p className="mt-2 text-sm leading-6 text-muted">No se pueden publicar cambios desde aquí todavía porque el backend no expone recursos para esas secciones. Añadir formularios sin una API produciría contenido que se pierde al recargar.</p></article></section>}
+        {activeTab === 'content' && <section className="mt-6 grid gap-6 lg:grid-cols-2"><form onSubmit={submitAchievement} className="border border-gold-dim bg-panel p-5"><h2 className="font-display text-lg uppercase text-parchment">Añadir logro</h2><div className="mt-5 grid gap-3"><input required minLength="2" maxLength="100" value={achievementForm.achName} onChange={(event) => setAchievementForm((value) => ({ ...value, achName: event.target.value }))} placeholder="Nombre del logro" className="border border-gold-dim bg-void p-3" /><textarea required maxLength="500" value={achievementForm.achDescription} onChange={(event) => setAchievementForm((value) => ({ ...value, achDescription: event.target.value }))} placeholder="Descripción" className="min-h-24 border border-gold-dim bg-void p-3" /><input type="url" value={achievementForm.achPicture} onChange={(event) => setAchievementForm((value) => ({ ...value, achPicture: event.target.value }))} placeholder="URL de imagen (opcional)" className="border border-gold-dim bg-void p-3" /><div className="grid gap-3 sm:grid-cols-2"><input type="number" min="1" value={achievementForm.targetValue} onChange={(event) => setAchievementForm((value) => ({ ...value, targetValue: event.target.value }))} placeholder="Meta (opcional)" className="border border-gold-dim bg-void p-3" /><input maxLength="50" value={achievementForm.progressLabel} onChange={(event) => setAchievementForm((value) => ({ ...value, progressLabel: event.target.value }))} placeholder="Etiqueta de progreso" className="border border-gold-dim bg-void p-3" /></div><label className="flex items-center gap-2 text-sm text-muted"><input type="checkbox" checked={achievementForm.isAchHidden} onChange={(event) => setAchievementForm((value) => ({ ...value, isAchHidden: event.target.checked }))} /> Ocultar hasta desbloquear</label><button disabled={saving} className="justify-self-start border border-gold bg-crimson px-4 py-3 font-display text-xs uppercase disabled:opacity-60">Guardar logro</button></div></form><form onSubmit={submitCategory} className="border border-gold-dim bg-panel p-5"><h2 className="font-display text-lg uppercase text-parchment">Categorías del foro</h2><div className="mt-5 grid gap-3"><input required minLength="2" maxLength="100" value={categoryForm.categoryName} onChange={(event) => setCategoryForm((value) => ({ ...value, categoryName: event.target.value }))} placeholder="Nombre de categoría" className="border border-gold-dim bg-void p-3" /><textarea maxLength="500" value={categoryForm.description} onChange={(event) => setCategoryForm((value) => ({ ...value, description: event.target.value }))} placeholder="Descripción (opcional)" className="min-h-24 border border-gold-dim bg-void p-3" /><button disabled={saving} className="justify-self-start border border-gold bg-crimson px-4 py-3 font-display text-xs uppercase disabled:opacity-60">Crear categoría</button></div><ul className="mt-6 divide-y divide-gold-dim border-y border-gold-dim">{data.categories.map((category) => <li key={category.categoryId} className="flex items-center justify-between gap-3 py-3"><span><strong className="font-display text-sm text-parchment">{category.categoryName}</strong><small className="mt-1 block text-muted">{category.description}</small></span><button type="button" disabled={saving} onClick={() => window.confirm(`¿Eliminar la categoría ${category.categoryName}?`) && void runAction(() => adminMutations.deleteCategory(category), 'La categoría fue eliminada.')} className="text-xs text-error disabled:opacity-60">Eliminar</button></li>)}</ul></form><article className="border border-warning bg-panel p-5 lg:col-span-2"><h2 className="font-display text-sm uppercase text-warning">Crónicas y Archivo/Extras</h2><p className="mt-2 text-sm leading-6 text-muted">No se pueden publicar cambios desde aquí todavía porque el backend no expone recursos para esas secciones. Añadir formularios sin una API produciría contenido que se pierde al recargar.</p></article></section>}
       </>}
     </div></main>
   </div>;

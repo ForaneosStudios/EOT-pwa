@@ -43,7 +43,7 @@ function useLogoutToLanding() {
   const { logout } = useAuth();
   const navigate = useNavigate();
   return async () => {
-    await logout();
+    if ((await logout()) === false) return;
     void navigate('/', { replace: true });
   };
 }

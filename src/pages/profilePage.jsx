@@ -6,6 +6,8 @@ import FormField from '../components/formField.jsx';
 import { navigationItems } from '../components/landing/navigation.js';
 import { apiClient, getApiErrorMessage } from '../services/apiClient.js';
 import { updatePassword } from '../services/authService.js';
+import { profileMutations } from '../services/mutations.js';
+import { QUEUED_MESSAGE } from '../services/offline/messages.js';
 import { ProfileAchievementsSkeleton } from '../components/feedback/contentSkeletons.jsx';
 
 const avatars = Array.from({ length: 6 }, (_, index) => `/avatars/avatar-${index + 1}.svg`);
@@ -40,11 +42,15 @@ export default function ProfilePage({ user, onLogout, onUserUpdate, message }) {
   const unlockedAchievements = state.achievements.filter((achievement) => achievement.isUnlocked === true);
 
   async function saveAvatar() {
-    if (selectedAvatar === user.profilePicture) return;
+    if (selectedAvatar === user.profilePicture || avatarStatus.saving) return;
     setAvatarStatus({ saving: true, message: '', error: '' });
     try {
-      const { data } = await apiClient.patch('/users/me/profile-picture', { profilePicture: selectedAvatar });
-      onUserUpdate(data);
+      const result = await profileMutations.updateAvatar(selectedAvatar);
+      if (result.status === 'queued') {
+        setAvatarStatus({ saving: false, message: `Tu nuevo retrato se guardará al recuperar la conexión. ${QUEUED_MESSAGE}`, error: '' });
+        return;
+      }
+      onUserUpdate(result.data);
       setAvatarStatus({ saving: false, message: 'Retrato actualizado.', error: '' });
     } catch (error) {
       setAvatarStatus({ saving: false, message: '', error: getApiErrorMessage(error, 'No se pudo actualizar el retrato.') });
