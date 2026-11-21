@@ -107,6 +107,9 @@ test.describe('session', () => {
     await backend.signIn(PLAYER);
     await page.goto('/app');
     await expect(page.getByText(PLAYER.username).first()).toBeVisible();
+    // Let the page finish its own requests first; otherwise one of them could be the one that gets the 401.
+    await expect.poll(() => backend.calls('GET', '/user-achievements/me').length).toBeGreaterThan(0);
+    await page.waitForLoadState('networkidle');
     // The API now rejects every token, and the token refresh is rejected too.
     await context.route('http://api.test/api/v1/**', (route) => route.request().method() === 'OPTIONS'
       ? route.fulfill({ status: 204, headers: { 'access-control-allow-origin': '*', 'access-control-allow-headers': '*', 'access-control-allow-methods': '*' } })
@@ -114,7 +117,9 @@ test.describe('session', () => {
     await context.route('http://supabase.test/**', (route) => route.request().method() === 'OPTIONS'
       ? route.fulfill({ status: 204, headers: { 'access-control-allow-origin': '*', 'access-control-allow-headers': '*', 'access-control-allow-methods': '*' } })
       : route.fulfill({ status: 400, headers: { 'access-control-allow-origin': '*' }, contentType: 'application/json', body: '{"code":"refresh_token_not_found","message":"Invalid Refresh Token"}' }));
-    await page.getByRole('link', { name: /Logros/ }).first().click();
+    // The app may redirect while the click is still being delivered, detaching the link; a plain click
+    // event avoids Playwright retrying on an element that no longer exists.
+    await page.getByRole('link', { name: /Logros/ }).first().dispatchEvent('click');
     await expect(page).toHaveURL(/\/login$/);
     await expect(page.getByText('Tu sesión terminó. Inicia sesión nuevamente.')).toBeVisible();
   });
