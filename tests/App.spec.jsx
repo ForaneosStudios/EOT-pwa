@@ -24,7 +24,9 @@ it('restores the profile and closes the session', async () => {
   logoutUser.mockResolvedValue();
   render(<App />);
   fireEvent.click(await screen.findByText('Salir hero'));
-  expect(await screen.findByText('Entrar')).toBeTruthy();
+  // Signing out on purpose lands on the public landing, not on the login form.
+  expect(await screen.findByRole('link', { name: /Comenzar el viaje/ })).toBeTruthy();
+  expect(window.location.pathname).toBe('/');
   expect(logoutUser).toHaveBeenCalledOnce();
 });
 

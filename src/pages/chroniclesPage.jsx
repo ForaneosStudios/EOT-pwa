@@ -20,7 +20,7 @@ const loreCards = [
 
 export default function ChroniclesPage() {
   return (
-    <div className="flex min-h-screen flex-col bg-void md:flex-row">
+    <div className="flex min-h-dvh flex-col bg-void md:flex-row">
       <Sidebar navItems={navigationItems} />
       <main className="flex-1 px-5 py-8 sm:px-8 md:px-10 lg:px-14">
         <div className="page-enter mx-auto max-w-6xl">

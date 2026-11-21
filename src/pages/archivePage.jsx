@@ -31,7 +31,7 @@ export default function ArchivePage() {
   const visiblePieces = useMemo(() => pieces.filter((piece) => (category === 'Todo' || piece.category === category) && (!discardedOnly || piece.discarded)), [category, discardedOnly]);
 
   return (
-    <div className="flex min-h-screen flex-col bg-void md:flex-row">
+    <div className="flex min-h-dvh flex-col bg-void md:flex-row">
       <Sidebar navItems={navigationItems} />
       <main className="flex-1 px-5 py-8 sm:px-8 md:px-10 lg:px-14">
         <div className="page-enter mx-auto max-w-6xl">

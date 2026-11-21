@@ -24,7 +24,7 @@ export default function ConfirmationPage({ status, onLogin }) {
   }
 
   return (
-    <main className="min-h-screen bg-void px-4 py-10 text-parchment sm:px-8">
+    <main className="min-h-dvh bg-void px-4 py-10 text-parchment sm:px-8">
       <div className="mx-auto max-w-3xl">
         <header className="border-b border-gold-dim pb-5">
           <p className="font-display text-xs uppercase tracking-widest text-gold">Echoes of the Throne</p>

@@ -32,7 +32,7 @@ function LandingPage({ user, onLogout, message }) {
   }, [user?.userId]);
 
   return (
-    <div className="flex min-h-screen flex-col bg-void md:flex-row">
+    <div className="flex min-h-dvh flex-col bg-void md:flex-row">
       <Sidebar navItems={navigationItems} />
 
       <main className="flex-1 px-6 py-8 md:px-10">

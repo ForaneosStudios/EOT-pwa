@@ -155,7 +155,7 @@ export default function PublicLandingPage() {
       <footer className="public-footer">
         <p>Echoes of the Throne</p>
         <p>Proyecto de Foráneos Studios</p>
-        <a href="#inicio">Volver al inicio ↑</a>
+        <a href="#inicio" aria-label="Volver al inicio"><span className="public-footer-label">Volver al inicio </span><span aria-hidden="true">↑</span></a>
       </footer>
     </main>
   );
