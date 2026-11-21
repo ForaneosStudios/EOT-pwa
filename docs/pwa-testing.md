@@ -22,3 +22,25 @@ Para probar instalación y conexión sin depender del modo de desarrollo:
 Las escrituras de la API se encolan con una Idempotency-Key (ver
 `docs/tecnica/04-pwa-calidad-y-pruebas.md`, sección «Cola de escrituras offline e
 idempotencia»). Las operaciones de autenticación nunca se almacenan para reenvío.
+
+## Pruebas end-to-end (Playwright)
+
+```
+npm run test:e2e          # compila la app, la sirve y ejecuta todos los specs
+npm run test:e2e:ui       # modo interactivo
+npm run test:e2e:report   # abre el último reporte HTML
+```
+
+Corren en Chromium contra el build de producción (service worker y manifiesto reales). Supabase y la API
+se simulan en la red del navegador (`e2e/support/mockBackend.js`), de modo que no dependen de servicios
+externos ni de credenciales. El mock guarda las peticiones recibidas y puede fallar a propósito (conexión
+caída, respuesta perdida, `STALE_WRITE`), lo que permite probar la cola offline con la red cortada de verdad.
+
+| Spec | Cubre |
+|---|---|
+| `public.spec.js` | Portada, anclas, imágenes, rutas desconocidas y protegidas |
+| `auth.spec.js` | Login, registro, sesión, cierre de sesión, roles y sesión expirada |
+| `forum.spec.js` | Hilos, comentarios, edición, borrado y reportes |
+| `offline-queue.spec.js` | Cola offline, reenvío único, respuesta perdida, duplicados, orden, dos pestañas, `STALE_WRITE`, cierre de sesión con pendientes |
+| `pwa.spec.js` | Manifiesto, iconos, service worker, shell sin conexión, sin caché de la API |
+| `responsive.spec.js` | Diseño en teléfono (proyecto `mobile`): sin scroll lateral, objetivos táctiles, menú, diálogos |
