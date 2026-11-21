@@ -106,10 +106,10 @@ function RegisterPage({ onLogin, onOpenLogin }) {
   });
 
   return (
-    <main className="min-h-screen bg-void px-4 py-8 sm:px-8 lg:px-0">
+    <main className="min-h-dvh bg-void px-4 py-8 sm:px-8 lg:px-0">
       <div className="mx-auto max-w-3xl">
         <header className="border-b border-gold-dim pb-4">
-          <div className="flex items-center justify-between gap-4"><p className="font-display text-xs uppercase text-gold">Portal del Inframundo</p><Link to="/" className="font-display text-xs uppercase text-gold hover:text-parchment">← Volver a la portada</Link></div>
+          <div className="flex items-center justify-between gap-4"><p className="font-display text-xs uppercase text-gold">Portal del Inframundo</p><Link to="/" className="inline-block py-3 font-display text-xs uppercase text-gold hover:text-parchment">← Volver a la portada</Link></div>
           <h1 className="mt-3 font-display text-2xl text-parchment sm:text-3xl">Inscripción del Heredero</h1>
           <p className="mt-3 font-display text-sm text-parchment/90">
             Crea tu cuenta para formar parte del Consejo de las Almas.
@@ -150,7 +150,7 @@ function RegisterPage({ onLogin, onOpenLogin }) {
 
           <p className="mt-6 text-center font-display text-sm text-parchment">
             ¿Ya tienes una cuenta?{' '}
-            <button type="button" onClick={onOpenLogin} className="ml-1 cursor-pointer uppercase text-parchment underline-offset-4 hover:text-gold hover:underline">
+            <button type="button" onClick={onOpenLogin} className="ml-1 cursor-pointer py-3 uppercase text-parchment underline-offset-4 hover:text-gold hover:underline">
               Iniciar sesión
             </button>
           </p>

@@ -124,7 +124,7 @@ export default function AdminPage({ user, onLogout }) {
     ['Categorías', data.categories.length],
   ];
 
-  return <div className="flex min-h-screen flex-col bg-void md:flex-row">
+  return <div className="flex min-h-dvh flex-col bg-void md:flex-row">
     <Sidebar navItems={navigationItems} />
     <main className="flex-1 px-6 py-8 md:px-10"><div className="page-enter mx-auto max-w-6xl">
       <div className="flex justify-end"><button type="button" onClick={onLogout} className="border border-gold-dim px-4 py-2 font-display text-xs uppercase text-gold hover:border-gold">Cerrar sesión</button></div>

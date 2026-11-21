@@ -36,7 +36,7 @@ function FormField({ id, label, type = 'text', value, onChange, onBlur, errorMes
           className={`h-12 w-full border bg-panel-deep px-3 font-body text-sm text-parchment outline-none transition-colors placeholder:font-display placeholder:text-xs placeholder:text-muted ${showPasswordToggle ? 'pr-12' : ''} ${borderByStatus[status]}`}
         />
         {showPasswordToggle && (
-          <button type="button" onMouseDown={(event) => event.preventDefault()} onClick={() => setPasswordVisible((visible) => !visible)} aria-label={passwordVisible ? 'Ocultar contraseña' : 'Mostrar contraseña'} aria-pressed={passwordVisible} className="absolute right-3 top-1/2 -translate-y-1/2 text-gold transition-colors hover:text-parchment focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gold">
+          <button type="button" onMouseDown={(event) => event.preventDefault()} onClick={() => setPasswordVisible((visible) => !visible)} aria-label={passwordVisible ? 'Ocultar contraseña' : 'Mostrar contraseña'} aria-pressed={passwordVisible} className="absolute right-1 top-1/2 -translate-y-1/2 p-3 text-gold transition-colors hover:text-parchment focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gold">
             {passwordVisible ? (
               <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className="size-5">
                 <path strokeLinecap="round" strokeLinejoin="round" d="M3 3l18 18M10.6 10.6a2 2 0 002.8 2.8M9.9 5.1A10.8 10.8 0 0112 4.9c5.2 0 8.7 4.2 9.7 6.1a2.2 2.2 0 010 2c-.4.8-1.2 1.9-2.3 2.8M6.6 6.6C4.7 8 3.4 10 2.3 12a2.2 2.2 0 000 2c1 1.9 4.5 6.1 9.7 6.1 1.1 0 2.1-.2 3-.5" />

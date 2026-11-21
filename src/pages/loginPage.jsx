@@ -42,10 +42,10 @@ export default function LoginPage({ onLogin, onRegister, onForgot, message }) {
   });
 
   return (
-    <main className="min-h-screen bg-void px-4 py-8 sm:px-8 lg:px-0">
+    <main className="min-h-dvh bg-void px-4 py-8 sm:px-8 lg:px-0">
       <div className="mx-auto max-w-3xl">
         <header className="border-b border-gold-dim pb-4">
-          <div className="flex items-center justify-between gap-4"><p className="font-display text-xs uppercase text-gold">Portal del Inframundo</p><Link to="/" className="font-display text-xs uppercase text-gold hover:text-parchment">← Volver a la portada</Link></div>
+          <div className="flex items-center justify-between gap-4"><p className="font-display text-xs uppercase text-gold">Portal del Inframundo</p><Link to="/" className="inline-block py-3 font-display text-xs uppercase text-gold hover:text-parchment">← Volver a la portada</Link></div>
           <h1 className="mt-3 font-display text-2xl text-parchment sm:text-3xl">Regreso del Heredero</h1>
         </header>
         <section className="mx-auto mt-6 max-w-md border border-gold-dim bg-panel px-6 pb-10 pt-5 sm:px-12">
@@ -60,10 +60,10 @@ export default function LoginPage({ onLogin, onRegister, onForgot, message }) {
             {!isOnline && <p role="status" className="border border-warning px-3 py-2 font-body text-sm text-warning">Sin conexión. Necesitas internet para iniciar sesión.</p>}
             {submitError && <p role="alert" className="border border-error px-3 py-2 font-body text-sm text-error">{submitError}</p>}
           </form>
-          <button type="button" onClick={onForgot} className="mt-5 text-sm text-gold underline">¿Olvidaste tu contraseña?</button>
+          <button type="button" onClick={onForgot} className="mt-3 py-3 text-sm text-gold underline">¿Olvidaste tu contraseña?</button>
           <p className="mt-6 text-center font-display text-sm text-parchment">
             ¿No tienes una cuenta?{' '}
-            <button type="button" onClick={onRegister} className="ml-1 cursor-pointer uppercase text-parchment underline-offset-4 hover:text-gold hover:underline">Crear cuenta</button>
+            <button type="button" onClick={onRegister} className="ml-1 cursor-pointer py-3 uppercase text-parchment underline-offset-4 hover:text-gold hover:underline">Crear cuenta</button>
           </p>
         </section>
       </div>
