@@ -3,6 +3,8 @@ import { useOutbox } from '../../hooks/useOutbox.js';
 import { outbox } from '../../services/offline/index.js';
 import { OUTBOX_STATUS_LABELS, canRetry, outboxErrorMessage, retryLabel } from '../../services/offline/messages.js';
 
+const countLabel = (count, singular, plural) => `${count} ${count === 1 ? singular : plural}`;
+
 // Global summary of mutations waiting to be sent, refused by the server after a replay, or
 // superseded by a newer edit made on another device.
 export default function PendingActions() {
@@ -21,9 +23,9 @@ export default function PendingActions() {
   }
 
   const summary = [
-    pending ? `${pending} ${pending === 1 ? 'acción pendiente' : 'acciones pendientes'} de enviar` : '',
-    failed ? `${failed} sin enviar por un error` : '',
-    superseded ? `${superseded} ${superseded === 1 ? 'superada' : 'superadas'} por ediciones más recientes` : '',
+    pending && `${countLabel(pending, 'acción pendiente', 'acciones pendientes')} de enviar`,
+    failed && `${failed} sin enviar por un error`,
+    superseded && `${countLabel(superseded, 'superada', 'superadas')} por ediciones más recientes`,
   ].filter(Boolean).join(' · ');
 
   return <section aria-label="Acciones sin conexión" className="border-b border-warning bg-panel px-4 py-2 text-sm text-warning">

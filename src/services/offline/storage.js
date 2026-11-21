@@ -6,7 +6,7 @@ const DB_NAME = 'eot-offline';
 const DB_VERSION = 1;
 const STORE = 'outbox';
 
-const clone = (value) => (value === undefined ? value : JSON.parse(JSON.stringify(value)));
+const clone = (value) => (value === undefined ? value : structuredClone(value));
 
 export function createMemoryStorage() {
   const items = new Map();

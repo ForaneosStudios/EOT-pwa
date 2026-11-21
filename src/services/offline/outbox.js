@@ -28,11 +28,14 @@ export const INTENT_HEADER = 'X-Client-Intent-At';
 
 const ACTIVE = new Set(['queued', 'sending']);
 
+// Stable JSON: object keys sorted, undefined values dropped, so equal payloads compare equal.
 export function canonicalJson(value) {
-  if (Array.isArray(value)) return `[${value.map((entry) => canonicalJson(entry ?? null)).join(',')}]`;
+  if (Array.isArray(value)) {
+    return '[' + value.map((entry) => canonicalJson(entry ?? null)).join(',') + ']';
+  }
   if (value && typeof value === 'object') {
-    return `{${Object.keys(value).filter((key) => value[key] !== undefined).sort()
-      .map((key) => `${JSON.stringify(key)}:${canonicalJson(value[key])}`).join(',')}}`;
+    const keys = Object.keys(value).filter((key) => value[key] !== undefined).sort((a, b) => a.localeCompare(b));
+    return '{' + keys.map((key) => JSON.stringify(key) + ':' + canonicalJson(value[key])).join(',') + '}';
   }
   return JSON.stringify(value ?? null);
 }
@@ -156,7 +159,7 @@ export function createOutbox({
   async function complete(item, data) {
     recent.set(item.fingerprint, { at: now(), data });
     // A confirmed answer makes any queued copy of the same request redundant.
-    for (const duplicate of items.filter((entry) => entry.fingerprint === item.fingerprint)) await drop(duplicate);
+    await Promise.all(items.filter((entry) => entry.fingerprint === item.fingerprint).map(drop));
     synced({ item, data });
   }
 
@@ -178,42 +181,47 @@ export function createOutbox({
       await complete(sending, response?.data);
       return { type: 'done', data: response?.data };
     } catch (error) {
-      const status = error?.response?.status;
-      if (!error?.response) {
-        // Offline, timeout or DNS: the request may or may not have reached the server.
-        await requeue(sending, backoff(sending.attempts), error);
-        return { type: 'retry', error };
-      }
-      if (status === 409 && error.response.data?.code === 'IDEMPOTENCY_IN_PROGRESS') {
-        const seconds = Number(error.response.headers?.['retry-after']) || 2;
-        await requeue(sending, seconds * 1000, error);
-        return { type: 'retry', error };
-      }
-      if (status === 409 && error.response.data?.code === 'STALE_WRITE') {
-        // A newer edit made on another device already won. Not an error: keep it so the user can
-        // see it and decide whether to apply it again.
-        const current = error.response.data?.current ?? null;
-        await save({ ...sending, status: 'superseded', lastError: describeError(error) });
-        synced({ item: sending, data: current, superseded: true });
-        return { type: 'superseded', error };
-      }
-      if (status === 404 && sending.method === 'DELETE') {
-        await complete(sending, null); // Already gone: the goal of the request is met.
-        return { type: 'done', data: null };
-      }
-      if (status === 401) {
-        // The API client already tried to renew the token. Keep the item and wait for a new login.
-        paused = true;
-        await requeue(sending, 0, error);
-        return { type: 'auth', error };
-      }
-      if (status === 408 || status === 429 || status >= 500) {
-        await requeue(sending, backoff(sending.attempts), error);
-        return { type: 'retry', error };
-      }
-      await save({ ...sending, status: 'failed', lastError: describeError(error) });
-      return { type: 'failed', error };
+      return handleFailure(sending, error);
     }
+  }
+
+  // Decides what a failed send means: retry later, wait, done, superseded or failed for good.
+  async function handleFailure(sending, error) {
+    const status = error?.response?.status;
+    if (!error?.response) {
+      // Offline, timeout or DNS: the request may or may not have reached the server.
+      await requeue(sending, backoff(sending.attempts), error);
+      return { type: 'retry', error };
+    }
+    if (status === 409 && error.response.data?.code === 'IDEMPOTENCY_IN_PROGRESS') {
+      const seconds = Number(error.response.headers?.['retry-after']) || 2;
+      await requeue(sending, seconds * 1000, error);
+      return { type: 'retry', error };
+    }
+    if (status === 409 && error.response.data?.code === 'STALE_WRITE') {
+      // A newer edit made on another device already won. Not an error: keep it so the user can
+      // see it and decide whether to apply it again.
+      const current = error.response.data?.current ?? null;
+      await save({ ...sending, status: 'superseded', lastError: describeError(error) });
+      synced({ item: sending, data: current, superseded: true });
+      return { type: 'superseded', error };
+    }
+    if (status === 404 && sending.method === 'DELETE') {
+      await complete(sending, null); // Already gone: the goal of the request is met.
+      return { type: 'done', data: null };
+    }
+    if (status === 401) {
+      // The API client already tried to renew the token. Keep the item and wait for a new login.
+      paused = true;
+      await requeue(sending, 0, error);
+      return { type: 'auth', error };
+    }
+    if (status === 408 || status === 429 || status >= 500) {
+      await requeue(sending, backoff(sending.attempts), error);
+      return { type: 'retry', error };
+    }
+    await save({ ...sending, status: 'failed', lastError: describeError(error) });
+    return { type: 'failed', error };
   }
 
   async function drain() {
@@ -233,7 +241,7 @@ export function createOutbox({
           if (paused || item.owner !== owner) break;
           if (inFlight.has(item.fingerprint)) continue; // Being sent right now from this tab.
           const current = items.find((entry) => entry.id === item.id);
-          if (!current || current.status !== 'queued') continue;
+          if (current?.status !== 'queued') continue;
           const outcome = await attempt(current, DRAIN_TIMEOUT_MS);
           // Stop at the first connectivity problem so later items keep their order.
           if (outcome.type === 'retry' || outcome.type === 'auth') break;
@@ -300,12 +308,13 @@ export function createOutbox({
     if (owner) {
       try {
         const all = await storage.all();
-        for (const item of all) {
+        await Promise.all(all.map((item) => {
           // Never keep another account's pending content on this device.
-          if (item.owner !== owner) await storage.remove(item.id);
+          if (item.owner !== owner) return storage.remove(item.id);
           // A tab closed mid-request leaves "sending"; the same key makes resending safe.
-          else if (item.status === 'sending') await storage.put({ ...item, status: 'queued', nextAttemptAt: now() });
-        }
+          if (item.status === 'sending') return storage.put({ ...item, status: 'queued', nextAttemptAt: now() });
+          return null;
+        }));
       } catch (error) {
         onError('Could not tidy the queue for the new account', error);
       }
@@ -344,7 +353,7 @@ export function createOutbox({
   }
 
   async function clearOwner() {
-    for (const item of [...items]) await drop(item);
+    await Promise.all(items.map(drop));
     recent.clear();
   }
 
@@ -360,7 +369,8 @@ export function createOutbox({
     // Skips the backoff wait, e.g. when the user presses "send now".
     async sendNow() {
       paused = false;
-      for (const item of items.filter((entry) => entry.status === 'queued')) await save({ ...item, nextAttemptAt: now() });
+      await Promise.all(items.filter((entry) => entry.status === 'queued')
+        .map((item) => save({ ...item, nextAttemptAt: now() })));
       await drain();
     },
     subscribe(listener) { listeners.add(listener); return () => listeners.delete(listener); },
