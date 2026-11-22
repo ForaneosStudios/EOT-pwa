@@ -1,10 +1,12 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import Sidebar from '../components/landing/sidebar.jsx';
 import PageHeader from '../components/landing/pageHeader.jsx';
 import WelcomeCard from '../components/landing/welcomeCard.jsx';
 import SectionCard from '../components/landing/sectionCard.jsx';
 import { navigationItems } from '../components/landing/navigation.js';
 import { apiClient } from '../services/apiClient.js';
+import RecordsPanel from '../components/landing/recordsPanel.jsx';
+import { useLiveRefresh } from '../app/live/liveContext.js';
 
 // Datos de ejemplo: cuando el login esté listo, el usuario y los logros vendrán del backend
 const exampleUser = {
@@ -22,6 +24,8 @@ const sections = [
 
 function LandingPage({ user, onLogout, message }) {
   const [achievementProgress, setAchievementProgress] = useState({ unlocked: 0, total: 0 });
+  const [version, setVersion] = useState(0);
+  useLiveRefresh(['achievements'], useCallback(() => setVersion((value) => value + 1), []));
 
   useEffect(() => {
     const controller = new AbortController();
@@ -29,7 +33,7 @@ function LandingPage({ user, onLogout, message }) {
       if (Array.isArray(data)) setAchievementProgress({ unlocked: data.filter((achievement) => achievement.isUnlocked === true).length, total: data.length });
     }).catch(() => {});
     return () => controller.abort();
-  }, [user?.userId]);
+  }, [user?.userId, version]);
 
   return (
     <div className="flex min-h-dvh flex-col bg-void md:flex-row">
@@ -54,6 +58,8 @@ function LandingPage({ user, onLogout, message }) {
               totalAchievements={achievementProgress.total}
             />
           </div>
+
+          <RecordsPanel user={user} />
 
           <h2 className="mt-10 font-display text-lg uppercase text-parchment">Los pasajes del reino</h2>
 
