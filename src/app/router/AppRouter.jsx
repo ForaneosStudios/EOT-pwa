@@ -1,4 +1,5 @@
 import { Navigate, Route, Routes, useLocation, useNavigate } from 'react-router-dom';
+import ResetPasswordPage from '../../pages/resetPasswordPage.jsx';
 import { useAuth } from '../auth/authContext.js';
 import ProtectedRoute from './ProtectedRoute.jsx';
 import LandingPage from '../../pages/landingPage.jsx';
@@ -68,6 +69,15 @@ function ForumRoute() { const { user, message } = useAuth(); return <ForumPage u
 function ForumThreadRoute() { const { user } = useAuth(); return <ForumThreadPage user={user} onLogout={useLogoutToLanding()} />; }
 function AdminRoute() { const { user } = useAuth(); return <AdminPage user={user} onLogout={useLogoutToLanding()} />; }
 
+function ResetPasswordRoute() {
+  const { setMessage } = useAuth();
+  const navigate = useNavigate();
+  return <ResetPasswordPage onDone={(done) => {
+    setMessage(done ? 'Contraseña actualizada. Todas tus sesiones se cerraron: inicia sesión de nuevo.' : '');
+    void navigate('/login', { replace: true });
+  }} onRequestNew={() => { void navigate('/auth/forgot-password', { replace: true }); }} />;
+}
+
 function ForgotRoute() {
   const navigate = useNavigate();
   return <PasswordPage onLogin={() => { void navigate('/login'); }} />;
@@ -81,6 +91,7 @@ export default function AppRouter() {
     <Route path="/auth/confirm" element={<CallbackRoute />} />
     <Route path="/auth/reset-password" element={<CallbackRoute recovery />} />
     <Route path="/auth/forgot-password" element={<ForgotRoute />} />
+    <Route path="/reset-password" element={<ResetPasswordRoute />} />
     <Route element={<ProtectedRoute />}><Route path="/app" element={<HomeRoute />} /><Route path="/achievements" element={<AchievementsRoute />} /><Route path="/chronicles" element={<ChroniclesPage />} /><Route path="/archive" element={<ArchivePage />} /><Route path="/forum" element={<ForumRoute />} /><Route path="/forum/:threadId" element={<ForumThreadRoute />} /><Route path="/profile" element={<ProfileRoute />} /></Route>
     <Route element={<ProtectedRoute roles={['ADMIN']} />}><Route path="/admin" element={<AdminRoute />} /></Route>
     <Route path="*" element={<Navigate to="/" replace />} />
