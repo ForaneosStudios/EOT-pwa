@@ -2,6 +2,7 @@ import { afterEach, expect, it, vi } from 'vitest';
 import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import PwaStatus from '../src/components/pwa/PwaStatus.jsx';
 import { usePwaInstall } from '../src/components/pwa/pwaInstallContext.js';
+import { staleData } from '../src/services/offline/readCache.js';
 
 afterEach(() => { cleanup(); vi.restoreAllMocks(); });
 
@@ -37,4 +38,13 @@ it('clears an installation offer if the app is installed elsewhere', () => {
   expect(screen.getByRole('button', { name: 'Instalar app' })).toBeTruthy();
   act(() => window.dispatchEvent(new Event('appinstalled')));
   expect(screen.queryByRole('button', { name: 'Instalar app' })).toBeNull();
+});
+
+it('tells the player when the screen shows data saved on the device', () => {
+  render(<PwaStatus />);
+  expect(screen.queryByText(/datos guardados/)).toBeNull();
+  act(() => staleData.markStale(new Date('2026-11-22T10:00:00Z').getTime()));
+  expect(screen.getByText(/Mostrando datos guardados en este dispositivo/)).toBeTruthy();
+  act(() => staleData.markFresh());
+  expect(screen.queryByText(/datos guardados/)).toBeNull();
 });

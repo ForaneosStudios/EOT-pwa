@@ -4,6 +4,7 @@ import App from '../src/App.jsx';
 import { restoreUser, logoutUser } from '../src/services/authService.js';
 import { AUTH_REQUIRED_EVENT } from '../src/services/apiClient.js';
 
+vi.mock('../src/services/offline/prefetch.js', () => ({ prefetchOnce: vi.fn(() => Promise.resolve(0)) }));
 vi.mock('../src/services/authService.js', () => ({
   takeConfirmationResult: () => null, verifyConfirmation: vi.fn(), restoreUser: vi.fn(), logoutUser: vi.fn(),
   subscribeToAuthChanges: () => () => {},

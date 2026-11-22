@@ -2,6 +2,8 @@
 // when it is unavailable (some private modes, quota errors) we fall back to memory so the
 // app keeps working online exactly as before, only without surviving a reload.
 
+import { createIdbStore } from './idbStore.js';
+
 const DB_NAME = 'eot-offline';
 const DB_VERSION = 1;
 const STORE = 'outbox';
@@ -19,33 +21,7 @@ export function createMemoryStorage() {
 }
 
 export function createIndexedDbStorage(idb = globalThis.indexedDB) {
-  let dbPromise = null;
-
-  function open() {
-    dbPromise ??= new Promise((resolve, reject) => {
-      const request = idb.open(DB_NAME, DB_VERSION);
-      request.onupgradeneeded = () => {
-        const db = request.result;
-        if (!db.objectStoreNames.contains(STORE)) db.createObjectStore(STORE, { keyPath: 'id' });
-      };
-      request.onsuccess = () => resolve(request.result);
-      request.onerror = () => reject(request.error);
-      request.onblocked = () => reject(new Error('IndexedDB bloqueada por otra pestaña.'));
-    });
-    return dbPromise;
-  }
-
-  async function run(mode, operation) {
-    const db = await open();
-    return new Promise((resolve, reject) => {
-      const transaction = db.transaction(STORE, mode);
-      const request = operation(transaction.objectStore(STORE));
-      transaction.oncomplete = () => resolve(request?.result);
-      transaction.onerror = () => reject(transaction.error);
-      transaction.onabort = () => reject(transaction.error);
-    });
-  }
-
+  const run = createIdbStore(idb, { dbName: DB_NAME, version: DB_VERSION, storeName: STORE, keyPath: 'id' });
   return {
     kind: 'indexeddb',
     all: async () => (await run('readonly', (store) => store.getAll())) || [],

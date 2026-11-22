@@ -1,4 +1,5 @@
 import { expect, test } from './support/fixtures.js';
+import { API_URL, SUPABASE_URL } from '../playwright.config.js';
 
 // The service worker is switched back on here; everything else runs with it blocked.
 test.use({ serviceWorkers: 'allow' });
@@ -57,7 +58,45 @@ test.describe('installable PWA', () => {
     await context.setOffline(false);
   });
 
-  test('never caches API responses, so another account can never see someone else’s data', async ({ page, player }) => {
+  test('keeps the session and the last saved data after reloading without a connection', async ({ page, context, player }) => {
+    void player;
+    await page.goto('/forum');
+    await page.evaluate(async () => { await navigator.serviceWorker.ready; });
+    await page.reload(); // the worker now controls the page; the forum read is saved on the device
+    await expect.poll(() => page.evaluate(() => Boolean(navigator.serviceWorker.controller))).toBe(true);
+    await expect(page.getByRole('link', { name: /Bienvenidos al Consejo/ })).toBeVisible();
+
+    // Offline: the API and Supabase are unreachable (mocked routes would otherwise still answer).
+    await context.setOffline(true);
+    await context.route(`${new URL(API_URL).origin}/**`, (route) => route.abort('internetdisconnected'));
+    await context.route(`${new URL(SUPABASE_URL).origin}/**`, (route) => route.abort('internetdisconnected'));
+    await page.reload();
+    await expect(page).toHaveURL(/\/forum$/); // still signed in, not sent to the login form
+    await expect(page.getByRole('link', { name: /Bienvenidos al Consejo/ })).toBeVisible();
+    await expect(page.getByText(/Mostrando datos guardados en este dispositivo/)).toBeVisible();
+    await context.setOffline(false);
+  });
+
+  test('loads screens never visited ahead of time, so they also open without a connection', async ({ page, context, player }) => {
+    void player;
+    await page.goto('/app'); // only the home screen is visited
+    await page.evaluate(async () => { await navigator.serviceWorker.ready; });
+    await page.reload();
+    await expect.poll(() => page.evaluate(() => Boolean(navigator.serviceWorker.controller))).toBe(true);
+    // The forum list and its first thread were requested in the background after signing in.
+    await expect.poll(() => player.calls('GET', '/posts/page').length).toBeGreaterThan(0);
+
+    await context.setOffline(true);
+    await context.route(`${new URL(API_URL).origin}/**`, (route) => route.abort('internetdisconnected'));
+    await context.route(`${new URL(SUPABASE_URL).origin}/**`, (route) => route.abort('internetdisconnected'));
+    await page.getByRole('link', { name: 'Foro' }).first().click();
+    await expect(page.getByRole('link', { name: /Bienvenidos al Consejo/ })).toBeVisible();
+    await page.getByRole('link', { name: /Bienvenidos al Consejo/ }).click();
+    await expect(page.getByText('Primer comentario del hilo')).toBeVisible();
+    await context.setOffline(false);
+  });
+
+  test('never caches API responses in the service worker, so another account can never see someone else’s data', async ({ page, player }) => {
     void player;
     await page.goto('/forum');
     await expect(page.getByRole('link', { name: /Bienvenidos al Consejo/ })).toBeVisible();
