@@ -8,6 +8,7 @@ import { logoutUser, restoreUser } from '../src/services/authService.js';
 import { outbox, startOutbox } from '../src/services/offline/index.js';
 import { useOutboxSynced } from '../src/hooks/useOutbox.js';
 
+vi.mock('../src/services/offline/prefetch.js', () => ({ prefetchOnce: vi.fn(() => Promise.resolve(0)) }));
 vi.mock('../src/services/authService.js', () => ({
   takeConfirmationResult: () => null, verifyConfirmation: vi.fn(), restoreUser: vi.fn(), logoutUser: vi.fn(),
   subscribeToAuthChanges: () => () => {},
