@@ -6,12 +6,13 @@ import FormField from '../components/formField.jsx';
 import { navigationItems } from '../components/landing/navigation.js';
 import { apiClient, getApiErrorMessage } from '../services/apiClient.js';
 import { updatePassword } from '../services/authService.js';
+import { passwordError } from '../services/passwordRules.js';
 import { profileMutations } from '../services/mutations.js';
 import { QUEUED_MESSAGE } from '../services/offline/messages.js';
 import { ProfileAchievementsSkeleton } from '../components/feedback/contentSkeletons.jsx';
 
 const avatars = Array.from({ length: 6 }, (_, index) => `/avatars/avatar-${index + 1}.svg`);
-const passwordIsValid = (value) => value.length >= 8 && /[A-Z]/.test(value) && /\d/.test(value);
+const passwordIsValid = (value) => !passwordError(value);
 const formatDate = (value) => value ? new Intl.DateTimeFormat('es-MX', { dateStyle: 'long' }).format(new Date(value)) : 'Fecha no disponible';
 
 function ProfileAvatar({ src, username, className = '' }) {
