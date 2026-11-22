@@ -47,41 +47,54 @@ export function connectLiveUpdates({ onEvent, fetchImpl = (...args) => fetch(...
   const controller = new AbortController();
   const { signal } = controller;
 
+  // Forwards the events of one open stream until it ends or the connection is stopped.
+  async function readStream(body) {
+    const reader = body.getReader();
+    const decoder = new TextDecoder();
+    let buffer = '';
+    let chunk = await reader.read();
+    while (!chunk.done && !signal.aborted) {
+      buffer += decoder.decode(chunk.value, { stream: true });
+      const parsed = parseSse(buffer);
+      buffer = parsed.rest;
+      parsed.events.filter((event) => event.type !== 'ready').forEach((event) => onEvent(event));
+      chunk = await reader.read();
+    }
+  }
+
+  // Opens the stream once; resolves true when it connected (and has since closed).
+  async function connectOnce(resync) {
+    const token = await getToken();
+    if (!token) return false;
+    const response = await fetchImpl(`${API_BASE}/live/me`, {
+      headers: { Authorization: `Bearer ${token}`, Accept: 'text/event-stream' },
+      signal,
+      cache: 'no-store',
+    });
+    if (!response.ok || !response.body) return false;
+    if (resync) onEvent({ type: 'resync', data: {} });
+    await readStream(response.body);
+    return true;
+  }
+
   async function run() {
     let retry = MIN_RETRY_MS;
     let connectedBefore = false;
-    while (!signal.aborted) {
+    let active = !signal.aborted;
+    while (active) {
       try {
-        const token = await getToken();
-        if (token) {
-          const response = await fetchImpl(`${API_BASE}/live/me`, {
-            headers: { Authorization: `Bearer ${token}`, Accept: 'text/event-stream' },
-            signal,
-            cache: 'no-store',
-          });
-          if (response.ok && response.body) {
-            retry = MIN_RETRY_MS;
-            if (connectedBefore) onEvent({ type: 'resync', data: {} });
-            connectedBefore = true;
-            const reader = response.body.getReader();
-            const decoder = new TextDecoder();
-            let buffer = '';
-            for (;;) {
-              const { value, done } = await reader.read();
-              if (done || signal.aborted) break;
-              buffer += decoder.decode(value, { stream: true });
-              const parsed = parseSse(buffer);
-              buffer = parsed.rest;
-              parsed.events.filter((event) => event.type !== 'ready').forEach(onEvent);
-            }
-          }
+        if (await connectOnce(connectedBefore)) {
+          connectedBefore = true;
+          retry = MIN_RETRY_MS;
         }
       } catch {
         // Network error or aborted: fall through to the retry wait.
       }
-      if (signal.aborted) break;
-      await wait(retry, signal);
-      retry = Math.min(retry * 2, MAX_RETRY_MS);
+      if (!signal.aborted) {
+        await wait(retry, signal);
+        retry = Math.min(retry * 2, MAX_RETRY_MS);
+      }
+      active = !signal.aborted;
     }
   }
 
