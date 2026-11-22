@@ -9,6 +9,7 @@ vi.mock('../src/pages/loginPage.jsx', () => ({ default: ({ onLogin }) => <button
 vi.mock('../src/pages/registerPage.jsx', () => ({ default: ({ onLogin }) => <button onClick={() => onLogin({ role: 'USER' })}>Registrar</button> }));
 vi.mock('../src/pages/confirmationPage.jsx', () => ({ default: ({ onLogin, status }) => <button onClick={onLogin}>Confirmación {status}</button> }));
 vi.mock('../src/pages/passwordPage.jsx', () => ({ default: ({ onLogin, recovery }) => <button onClick={onLogin}>{recovery ? 'Nueva contraseña' : 'Recuperación'}</button> }));
+vi.mock('../src/pages/resetPasswordPage.jsx', () => ({ default: ({ onDone, onRequestNew }) => <><button onClick={() => onDone(true)}>Listo</button><button onClick={onRequestNew}>Pedir otro</button></> }));
 vi.mock('../src/pages/profilePage.jsx', () => ({ default: ({ user }) => <p>Perfil {user.username}</p> }));
 vi.mock('../src/pages/achievementsPage.jsx', () => ({ default: () => <p>Logros</p> }));
 vi.mock('../src/pages/publicLandingPage.jsx', () => ({ default: () => <p>Portada pública</p> }));
@@ -71,4 +72,15 @@ it('requires a session for chronicles and archive routes', () => {
 it('renders the authenticated user profile', () => {
   renderRouter('/profile', { user: { username: 'Alma', role: 'USER' } });
   expect(screen.getByText('Perfil Alma')).toBeTruthy();
+});
+
+it('sends the user to login with a notice after the password was reset, or back to the forgot page', () => {
+  const auth = renderRouter('/reset-password');
+  fireEvent.click(screen.getByText('Listo'));
+  expect(auth.setMessage).toHaveBeenCalledWith(expect.stringMatching(/sesiones se cerraron/));
+  expect(screen.getByText('Entrar')).toBeTruthy();
+  cleanup();
+  renderRouter('/reset-password');
+  fireEvent.click(screen.getByText('Pedir otro'));
+  expect(screen.getByText('Recuperación')).toBeTruthy();
 });

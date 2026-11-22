@@ -51,11 +51,27 @@ describe('authentication service', () => {
     expect(api.get).toHaveBeenCalledWith('/users/availability', { params: { username: 'Hero' } });
   });
 
-  it('requests a reset using the configured callback and handles errors', async () => {
-    client.auth.resetPasswordForEmail.mockResolvedValueOnce({ error: null }).mockResolvedValueOnce({ error: new Error('failed') });
-    await auth.requestPasswordReset(' user@example.com ');
-    expect(client.auth.resetPasswordForEmail).toHaveBeenCalledWith('user@example.com', { redirectTo: `${window.location.origin}/auth/reset-password` });
-    await expect(auth.requestPasswordReset('user@example.com')).rejects.toThrow('failed');
+  it('asks the backend for a recovery email and propagates errors', async () => {
+    api.post.mockResolvedValueOnce({ data: { sent: true } }).mockRejectedValueOnce(new Error('missing'));
+    await expect(auth.requestPasswordReset(' user@example.com ')).resolves.toEqual({ sent: true });
+    expect(api.post).toHaveBeenCalledWith('/auth/password-reset/request', { email: 'user@example.com' });
+    await expect(auth.requestPasswordReset('x@example.com')).rejects.toThrow('missing');
+  });
+
+  it('validates a reset link and confirms the new password signing the browser out', async () => {
+    api.get.mockResolvedValueOnce({ data: { valid: true } }).mockResolvedValueOnce({ data: { valid: false } });
+    expect(await auth.validateResetToken('tok')).toBe(true);
+    expect(api.get).toHaveBeenCalledWith('/auth/password-reset/validate', { params: { token: 'tok' } });
+    expect(await auth.validateResetToken('tok')).toBe(false);
+
+    api.post.mockResolvedValue({ data: { changed: true } });
+    client.auth.signOut.mockRejectedValueOnce(new Error('no session'));
+    await expect(auth.confirmPasswordReset('tok', 'Nueva#2026')).resolves.toBeUndefined();
+    expect(api.post).toHaveBeenCalledWith('/auth/password-reset/confirm', { token: 'tok', password: 'Nueva#2026' });
+    expect(client.auth.signOut).toHaveBeenCalledWith({ scope: 'local' });
+
+    api.post.mockRejectedValueOnce(new Error('bad link'));
+    await expect(auth.confirmPasswordReset('tok', 'Nueva#2026')).rejects.toThrow('bad link');
   });
 
   it('updates the password and propagates errors', async () => {
