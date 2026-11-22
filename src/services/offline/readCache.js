@@ -3,6 +3,8 @@
 // different account wipes the previous one, and signing out clears it, so a shared device never
 // shows another player's data.
 
+import { createIdbStore } from './idbStore.js';
+
 const DB_NAME = 'eot-read-cache';
 const DB_VERSION = 1;
 const STORE = 'responses';
@@ -20,29 +22,7 @@ function createMemoryStore() {
 }
 
 function createIndexedDbStore(idb) {
-  let dbPromise = null;
-  function open() {
-    dbPromise ??= new Promise((resolve, reject) => {
-      const request = idb.open(DB_NAME, DB_VERSION);
-      request.onupgradeneeded = () => {
-        if (!request.result.objectStoreNames.contains(STORE)) request.result.createObjectStore(STORE, { keyPath: 'key' });
-      };
-      request.onsuccess = () => resolve(request.result);
-      request.onerror = () => reject(request.error);
-      request.onblocked = () => reject(new Error('IndexedDB bloqueada por otra pestaña.'));
-    });
-    return dbPromise;
-  }
-  async function run(mode, operation) {
-    const db = await open();
-    return new Promise((resolve, reject) => {
-      const transaction = db.transaction(STORE, mode);
-      const request = operation(transaction.objectStore(STORE));
-      transaction.oncomplete = () => resolve(request?.result);
-      transaction.onerror = () => reject(transaction.error);
-      transaction.onabort = () => reject(transaction.error);
-    });
-  }
+  const run = createIdbStore(idb, { dbName: DB_NAME, version: DB_VERSION, storeName: STORE, keyPath: 'key' });
   return {
     get: (key) => run('readonly', (store) => store.get(key)),
     put: (entry) => run('readwrite', (store) => store.put(clone(entry))),
