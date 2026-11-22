@@ -4,6 +4,7 @@ import FormField from '../components/formField.jsx';
 import { isUsernameAvailable, registerUser } from '../services/authService.js';
 import { getApiErrorMessage } from '../services/apiClient.js';
 import { useOnlineStatus } from '../hooks/useOnlineStatus.js';
+import { PASSWORD_HELP, passwordError } from '../services/passwordRules.js';
 
 const initialValues = { userName: '', email: '', password: '', passwordConfirmation: '' };
 
@@ -23,11 +24,7 @@ function validateField(fieldName, value) {
     if (!emailPattern.test(trimmedValue)) return 'Introduce un correo válido.';
   }
 
-  if (fieldName === 'password') {
-    if (!value) return 'La contraseña es obligatoria.';
-    if (value.length < 8) return 'Debe tener al menos 8 caracteres.';
-    if (!/[A-Z]/.test(value) || !/\d/.test(value)) return 'Incluye al menos una mayúscula y un número.';
-  }
+  if (fieldName === 'password') return passwordError(value);
 
   if (fieldName === 'passwordConfirmation') {
     if (!value) return 'Confirma tu contraseña.';
@@ -124,7 +121,7 @@ function RegisterPage({ onLogin, onOpenLogin }) {
           <form onSubmit={handleSubmit} noValidate className="mt-6 flex flex-col gap-5">
             <FormField label="Nombre de usuario" autoComplete="username" helpText="Usa al menos 4 caracteres. Solo letras, números y guion bajo; debe estar disponible." {...getFieldProps('userName')} />
             <FormField label="Correo electrónico" type="email" autoComplete="email" helpText="Usa un correo válido y único. Lo verificaremos al crear tu cuenta." {...getFieldProps('email')} />
-            <FormField label="Contraseña" type="password" autoComplete="new-password" showPasswordToggle helpText="Mínimo 8 caracteres, con una mayúscula y un número." {...getFieldProps('password')} />
+            <FormField label="Contraseña" type="password" autoComplete="new-password" showPasswordToggle helpText={PASSWORD_HELP} {...getFieldProps('password')} />
             <FormField label="Confirmar contraseña" type="password" autoComplete="new-password" showPasswordToggle helpText="Escribe de nuevo la misma contraseña." {...getFieldProps('passwordConfirmation')} />
 
             <button

@@ -37,7 +37,25 @@ describe('reset password page', () => {
     render(<ResetPasswordPage onDone={vi.fn()} onRequestNew={vi.fn()} />);
     await screen.findByLabelText('Nueva contraseña');
     fill('Nueva#2026', 'Otra#2026');
-    expect((await screen.findByRole('alert')).textContent).toMatch(/no coinciden/);
+    expect(await screen.findByText('Las contraseñas no coinciden.')).toBeTruthy();
+    expect(confirmPasswordReset).not.toHaveBeenCalled();
+  });
+
+  it('applies the sign-up password rules before calling the backend', async () => {
+    validateResetToken.mockResolvedValue(true);
+    render(<ResetPasswordPage onDone={vi.fn()} onRequestNew={vi.fn()} />);
+    await screen.findByLabelText('Nueva contraseña');
+    fill('corta1A');
+    expect(await screen.findByText('Debe tener al menos 8 caracteres.')).toBeTruthy();
+    fill('sinmayuscula1');
+    expect(await screen.findByText('Incluye al menos una mayúscula y un número.')).toBeTruthy();
+    fill('SinNumeroAqui');
+    expect(await screen.findByText('Incluye al menos una mayúscula y un número.')).toBeTruthy();
+    fireEvent.change(screen.getByLabelText('Nueva contraseña'), { target: { value: 'Valida2026' } });
+    expect(screen.getByText('Las contraseñas no coinciden.')).toBeTruthy();
+    fireEvent.change(screen.getByLabelText('Confirmar contraseña'), { target: { value: 'Valida2026' } });
+    expect(screen.queryByText('Las contraseñas no coinciden.')).toBeNull();
+    expect(screen.queryByText('Incluye al menos una mayúscula y un número.')).toBeNull();
     expect(confirmPasswordReset).not.toHaveBeenCalled();
   });
 
