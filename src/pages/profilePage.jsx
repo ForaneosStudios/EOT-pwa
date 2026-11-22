@@ -1,8 +1,9 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import Sidebar from '../components/landing/sidebar.jsx';
 import PageHeader from '../components/landing/pageHeader.jsx';
 import FormField from '../components/formField.jsx';
+import { useLiveRefresh } from '../app/live/liveContext.js';
 import { navigationItems } from '../components/landing/navigation.js';
 import { apiClient, getApiErrorMessage } from '../services/apiClient.js';
 import { updatePassword } from '../services/authService.js';
@@ -24,6 +25,8 @@ function ProfileAvatar({ src, username, className = '' }) {
 export default function ProfilePage({ user, onLogout, onUserUpdate, message }) {
   const [state, setState] = useState({ loading: true, achievements: [], error: '' });
   const [attempt, setAttempt] = useState(0);
+  // The game saved progress: refetch quietly, keeping the current list on screen meanwhile.
+  useLiveRefresh(['achievements'], useCallback(() => setAttempt((value) => value + 1), []));
   const [selectedAvatar, setSelectedAvatar] = useState(user.profilePicture || avatars[0]);
   const [avatarStatus, setAvatarStatus] = useState({ saving: false, message: '', error: '' });
   const [passwords, setPasswords] = useState({ password: '', confirmation: '' });
