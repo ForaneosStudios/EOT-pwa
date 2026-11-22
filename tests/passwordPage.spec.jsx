@@ -12,14 +12,14 @@ beforeEach(() => vi.resetAllMocks());
 afterEach(cleanup);
 
 describe('password recovery', () => {
-  it('sends a recovery email and displays a generic confirmation', async () => {
+  it('sends a recovery email and confirms the email was sent', async () => {
     requestPasswordReset.mockResolvedValue();
     render(<PasswordPage onLogin={vi.fn()} />);
     fireEvent.change(screen.getByLabelText('Correo electrónico'), { target: { value: 'test@example.com' } });
     fireEvent.click(screen.getByRole('button', { name: 'Enviar enlace' }));
     expect(await screen.findByRole('status')).toBeTruthy();
     expect(requestPasswordReset).toHaveBeenCalledWith('test@example.com');
-    expect(screen.getByText(/Si existe una cuenta/)).toBeTruthy();
+    expect(screen.getByText(/válido por 10 minutos/)).toBeTruthy();
   });
 
   it('updates the password and signs out after a valid recovery link', async () => {

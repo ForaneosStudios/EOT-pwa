@@ -4,11 +4,21 @@ import { parseAuthCallback } from './authCallback.js';
 
 const confirmationUrl = () => `${window.location.origin}/auth/confirm`;
 
+// Password recovery is owned by the backend (themed email, 10 minute single-use link).
 export async function requestPasswordReset(email) {
-  const { error } = await requireSupabase().auth.resetPasswordForEmail(email.trim(), {
-    redirectTo: `${window.location.origin}/auth/reset-password`,
-  });
-  if (error) throw error;
+  const { data } = await apiClient.post('/auth/password-reset/request', { email: email.trim() });
+  return data;
+}
+
+export async function validateResetToken(token) {
+  const { data } = await apiClient.get('/auth/password-reset/validate', { params: { token } });
+  return data.valid === true;
+}
+
+export async function confirmPasswordReset(token, password) {
+  await apiClient.post('/auth/password-reset/confirm', { token, password });
+  // The backend revoked every session; drop the local copy too (ignore a missing session).
+  try { await logoutUser(); } catch { /* nothing to sign out */ }
 }
 
 export async function updatePassword(password) {

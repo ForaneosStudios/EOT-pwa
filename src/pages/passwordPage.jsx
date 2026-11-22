@@ -20,7 +20,7 @@ export default function PasswordPage({ recovery, status, onLogin }) {
         onLogin();
       } else {
         await requestPasswordReset(value);
-        setMessage('Si existe una cuenta con ese correo, recibirás un enlace para recuperar tu contraseña.');
+        setMessage('Te enviamos un correo con un enlace para restablecer tu contraseña. Es válido por 10 minutos y solo se puede usar una vez.');
       }
     } catch (err) {
       setError(getApiErrorMessage(err, 'No se pudo completar la solicitud. Inténtalo de nuevo.'));
