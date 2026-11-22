@@ -53,28 +53,22 @@ export async function resendConfirmation(email) {
   if (error) throw error;
 }
 
-// The last profile that signed in on this device, so the session survives a reload without internet.
-const PROFILE_KEY = 'eot:last-profile';
+// The profile is kept in the per-account read cache (IndexedDB) under the same key as the
+// /users/me read, so the session survives a reload without internet.
+const PROFILE_READ = '/users/me';
 
-function rememberProfile(authUser, profile) {
-  try {
-    if (authUser?.id && profile) localStorage.setItem(PROFILE_KEY, JSON.stringify({ authUserId: authUser.id, profile }));
-  } catch { /* storage unavailable: the app still works online */ }
+async function rememberProfile(authUser, profile) {
+  if (authUser?.id && profile) await readCache.put(authUser.id, PROFILE_READ, profile).catch(() => {});
   return profile;
 }
 
-function savedProfile(authUserId) {
+async function savedProfile(authUserId) {
   try {
-    const saved = JSON.parse(localStorage.getItem(PROFILE_KEY) || 'null');
-    if (!saved?.profile || (authUserId && saved.authUserId !== authUserId)) return null;
-    return saved.profile;
+    const entry = await readCache.get(authUserId || readCache.owner(), PROFILE_READ);
+    return entry?.data || null;
   } catch {
     return null;
   }
-}
-
-function forgetProfile() {
-  try { localStorage.removeItem(PROFILE_KEY); } catch { /* nothing stored */ }
 }
 
 // Auth metadata supplies only the initial username, never a role or permissions.
@@ -102,7 +96,7 @@ export async function loginUser({ email, password }) {
 export async function restoreUser() {
   const { data, error } = await requireSupabase().auth.getSession();
   if (error) {
-    const saved = isConnectionError(error) ? savedProfile() : null;
+    const saved = isConnectionError(error) ? await savedProfile() : null;
     if (saved) return saved;
     throw error;
   }
@@ -110,15 +104,14 @@ export async function restoreUser() {
   try {
     return await loadProfile(data.session.user);
   } catch (loadError) {
-    const saved = isConnectionError(loadError) ? savedProfile(data.session.user.id) : null;
+    const saved = isConnectionError(loadError) ? await savedProfile(data.session.user.id) : null;
     if (saved) return saved;
     throw loadError;
   }
 }
 
 export async function logoutUser() {
-  // Remove this account's saved data from the device before ending the session.
-  forgetProfile();
+  // Remove this account's saved data (profile included) from the device before ending the session.
   try { await readCache.clear(); } catch { /* best effort */ }
   const { error } = await requireSupabase().auth.signOut({ scope: 'local' });
   if (error) throw error;

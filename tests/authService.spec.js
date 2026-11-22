@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { parseAuthCallback } from '../src/services/authCallback.js';
 import * as auth from '../src/services/authService.js';
+import { readCache } from '../src/services/offline/readCache.js';
 
 const { client, api } = vi.hoisted(() => ({
   client: { auth: { resetPasswordForEmail: vi.fn(), updateUser: vi.fn(), setSession: vi.fn(), getUser: vi.fn(), getSession: vi.fn(), signOut: vi.fn(), signInWithPassword: vi.fn(), signUp: vi.fn(), resend: vi.fn() } },
@@ -12,7 +13,7 @@ vi.mock('../src/services/apiClient.js', () => ({
   isConnectionError: (error) => error?.name === 'AuthRetryableFetchError' || (Boolean(error?.config) && !error.response),
 }));
 
-beforeEach(() => { vi.resetAllMocks(); localStorage.clear(); window.history.replaceState(null, '', '/'); });
+beforeEach(async () => { vi.resetAllMocks(); await readCache.clear(); window.history.replaceState(null, '', '/'); });
 
 describe('authentication service', () => {
   it('registers without email confirmation and creates the backend profile', async () => {

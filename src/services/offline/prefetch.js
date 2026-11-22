@@ -28,12 +28,19 @@ export function prefetchRequests(user) {
   return requests;
 }
 
-async function runLimited(tasks, limit) {
-  const results = [];
-  for (let i = 0; i < tasks.length; i += limit) {
-    results.push(...await Promise.allSettled(tasks.slice(i, i + limit).map((task) => task())));
-  }
-  return results;
+// Runs the tasks with at most `limit` in flight; resolves with allSettled-style results in order.
+function runLimited(tasks, limit) {
+  const results = new Array(tasks.length);
+  let next = 0;
+  const worker = () => {
+    if (next >= tasks.length) return Promise.resolve();
+    const index = next++;
+    return Promise.allSettled([Promise.resolve().then(tasks[index])]).then(([result]) => {
+      results[index] = result;
+      return worker();
+    });
+  };
+  return Promise.all(Array.from({ length: Math.min(limit, tasks.length) }, worker)).then(() => results);
 }
 
 /**
