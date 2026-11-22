@@ -7,9 +7,12 @@ const { client, api } = vi.hoisted(() => ({
   api: { get: vi.fn(), post: vi.fn() },
 }));
 vi.mock('../src/services/supabase.js', () => ({ supabase: client, requireSupabase: () => client }));
-vi.mock('../src/services/apiClient.js', () => ({ apiClient: api }));
+vi.mock('../src/services/apiClient.js', () => ({
+  apiClient: api,
+  isConnectionError: (error) => error?.name === 'AuthRetryableFetchError' || (Boolean(error?.config) && !error.response),
+}));
 
-beforeEach(() => { vi.resetAllMocks(); window.history.replaceState(null, '', '/'); });
+beforeEach(() => { vi.resetAllMocks(); localStorage.clear(); window.history.replaceState(null, '', '/'); });
 
 describe('authentication service', () => {
   it('registers without email confirmation and creates the backend profile', async () => {
@@ -124,5 +127,33 @@ describe('authentication service', () => {
     client.auth.signOut.mockResolvedValue({ error: null });
     await auth.logoutUser();
     expect(client.auth.signOut).toHaveBeenCalledWith({ scope: 'local' });
+  });
+
+  it('keeps the session with the saved profile when there is no connection', async () => {
+    const user = { id: 'auth-1', user_metadata: {} };
+    client.auth.getSession.mockResolvedValue({ data: { session: { user } }, error: null });
+    api.get.mockResolvedValueOnce({ data: { username: 'hero', role: 'USER' } });
+    expect(await auth.restoreUser()).toEqual({ username: 'hero', role: 'USER' });
+
+    // Offline: the profile request fails, the saved one is used.
+    api.get.mockRejectedValueOnce({ config: {} });
+    expect(await auth.restoreUser()).toEqual({ username: 'hero', role: 'USER' });
+
+    // Offline with an expired token: Supabase cannot renew it, the saved profile still opens the app.
+    client.auth.getSession.mockResolvedValueOnce({ data: { session: null }, error: { name: 'AuthRetryableFetchError' } });
+    expect(await auth.restoreUser()).toEqual({ username: 'hero', role: 'USER' });
+
+    // A profile saved for another account is never used.
+    client.auth.getSession.mockResolvedValueOnce({ data: { session: { user: { id: 'auth-2' } } }, error: null });
+    api.get.mockRejectedValueOnce({ config: {} });
+    await expect(auth.restoreUser()).rejects.toEqual({ config: {} });
+
+    // Real errors still surface, and signing out forgets the profile.
+    client.auth.getSession.mockResolvedValueOnce({ data: { session: null }, error: new Error('invalid') });
+    await expect(auth.restoreUser()).rejects.toThrow('invalid');
+    client.auth.signOut.mockResolvedValue({ error: null });
+    await auth.logoutUser();
+    client.auth.getSession.mockResolvedValueOnce({ data: { session: null }, error: { name: 'AuthRetryableFetchError' } });
+    await expect(auth.restoreUser()).rejects.toEqual({ name: 'AuthRetryableFetchError' });
   });
 });
