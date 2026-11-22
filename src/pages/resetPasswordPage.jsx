@@ -1,6 +1,16 @@
 import { useEffect, useState } from 'react';
 import { confirmPasswordReset, validateResetToken } from '../services/authService.js';
 import { getApiErrorMessage } from '../services/apiClient.js';
+import FormField from '../components/formField.jsx';
+import { PASSWORD_HELP, passwordError } from '../services/passwordRules.js';
+
+function validate(password, confirmation) {
+  const passwordMessage = passwordError(password);
+  let confirmationMessage = '';
+  if (!confirmation) confirmationMessage = 'Confirma tu contraseña.';
+  else if (password !== confirmation) confirmationMessage = 'Las contraseñas no coinciden.';
+  return { password: passwordMessage, confirmation: confirmationMessage };
+}
 
 // The link from the email carries a one-time token. Read it once and remove it from the address bar.
 function takeToken() {
@@ -16,6 +26,8 @@ export default function ResetPasswordPage({ onDone, onRequestNew }) {
   const [confirmation, setConfirmation] = useState('');
   const [pending, setPending] = useState(false);
   const [error, setError] = useState('');
+  const [fieldErrors, setFieldErrors] = useState({});
+  const [submitted, setSubmitted] = useState(false);
 
   useEffect(() => {
     if (!token) return undefined;
@@ -28,10 +40,10 @@ export default function ResetPasswordPage({ onDone, onRequestNew }) {
 
   async function submit(event) {
     event.preventDefault();
-    if (password !== confirmation) {
-      setError('Las contraseñas no coinciden.');
-      return;
-    }
+    const errors = validate(password, confirmation);
+    setSubmitted(true);
+    setFieldErrors(errors);
+    if (errors.password || errors.confirmation) return;
     setPending(true);
     setError('');
     try {
@@ -57,11 +69,13 @@ export default function ResetPasswordPage({ onDone, onRequestNew }) {
         <p role="alert" className="mt-4">El enlace no es válido o ya expiró (dura 10 minutos y solo se usa una vez).</p>
         <button type="button" onClick={onRequestNew} className="mt-4 border border-gold p-3">Solicitar un enlace nuevo</button>
       </>}
-      {status === 'ready' && <form onSubmit={submit} className="mt-6 flex flex-col gap-4">
-        <label htmlFor="new-password">Nueva contraseña</label>
-        <input id="new-password" required minLength={8} maxLength={72} type="password" autoComplete="new-password" value={password} onChange={(event) => setPassword(event.target.value)} className="border border-gold-dim bg-void p-3" />
-        <label htmlFor="confirm-password">Confirmar contraseña</label>
-        <input id="confirm-password" required minLength={8} maxLength={72} type="password" autoComplete="new-password" value={confirmation} onChange={(event) => setConfirmation(event.target.value)} className="border border-gold-dim bg-void p-3" />
+      {status === 'ready' && <form onSubmit={submit} noValidate className="mt-6 flex flex-col gap-4">
+        <FormField id="new-password" label="Nueva contraseña" type="password" autoComplete="new-password" showPasswordToggle helpText={PASSWORD_HELP}
+          value={password} errorMessage={fieldErrors.password} isValid={submitted && !fieldErrors.password}
+          onChange={(event) => { setPassword(event.target.value); if (submitted) setFieldErrors(validate(event.target.value, confirmation)); }} />
+        <FormField id="confirm-password" label="Confirmar contraseña" type="password" autoComplete="new-password" showPasswordToggle helpText="Escribe de nuevo la misma contraseña."
+          value={confirmation} errorMessage={fieldErrors.confirmation} isValid={submitted && !fieldErrors.confirmation}
+          onChange={(event) => { setConfirmation(event.target.value); if (submitted) setFieldErrors(validate(password, event.target.value)); }} />
         <p className="text-sm text-parchment/70">Al guardarla se cerrarán todas tus sesiones (web y móvil).</p>
         <button type="submit" disabled={pending} className="border border-gold bg-crimson-light p-3 disabled:opacity-60">{pending ? 'Guardando...' : 'Guardar contraseña'}</button>
       </form>}
