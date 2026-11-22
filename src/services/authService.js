@@ -1,4 +1,5 @@
-import { apiClient } from './apiClient.js';
+import { apiClient, isConnectionError } from './apiClient.js';
+import { readCache } from './offline/readCache.js';
 import { requireSupabase, supabase } from './supabase.js';
 import { parseAuthCallback } from './authCallback.js';
 
@@ -52,17 +53,41 @@ export async function resendConfirmation(email) {
   if (error) throw error;
 }
 
+// The last profile that signed in on this device, so the session survives a reload without internet.
+const PROFILE_KEY = 'eot:last-profile';
+
+function rememberProfile(authUser, profile) {
+  try {
+    if (authUser?.id && profile) localStorage.setItem(PROFILE_KEY, JSON.stringify({ authUserId: authUser.id, profile }));
+  } catch { /* storage unavailable: the app still works online */ }
+  return profile;
+}
+
+function savedProfile(authUserId) {
+  try {
+    const saved = JSON.parse(localStorage.getItem(PROFILE_KEY) || 'null');
+    if (!saved?.profile || (authUserId && saved.authUserId !== authUserId)) return null;
+    return saved.profile;
+  } catch {
+    return null;
+  }
+}
+
+function forgetProfile() {
+  try { localStorage.removeItem(PROFILE_KEY); } catch { /* nothing stored */ }
+}
+
 // Auth metadata supplies only the initial username, never a role or permissions.
 export async function loadProfile(authUser) {
   try {
-    return (await apiClient.get('/users/me')).data;
+    return rememberProfile(authUser, (await apiClient.get('/users/me')).data);
   } catch (error) {
     if (error.response?.status !== 403) throw error;
     const username = authUser?.user_metadata?.username;
     if (typeof username !== 'string' || username.trim().length < 3) {
       throw new Error('La cuenta no tiene un nombre de usuario válido para crear su perfil.', { cause: error });
     }
-    return (await apiClient.post('/users/me/profile', { username: username.trim() })).data;
+    return rememberProfile(authUser, (await apiClient.post('/users/me/profile', { username: username.trim() })).data);
   }
 }
 
@@ -72,13 +97,29 @@ export async function loginUser({ email, password }) {
   return loadProfile(data.user);
 }
 
+// Without internet the session is kept with the saved profile: the token can be renewed and the
+// profile reloaded once the connection is back. Only a real answer from the servers ends it.
 export async function restoreUser() {
   const { data, error } = await requireSupabase().auth.getSession();
-  if (error) throw error;
-  return data.session ? loadProfile(data.session.user) : null;
+  if (error) {
+    const saved = isConnectionError(error) ? savedProfile() : null;
+    if (saved) return saved;
+    throw error;
+  }
+  if (!data.session) return null;
+  try {
+    return await loadProfile(data.session.user);
+  } catch (loadError) {
+    const saved = isConnectionError(loadError) ? savedProfile(data.session.user.id) : null;
+    if (saved) return saved;
+    throw loadError;
+  }
 }
 
 export async function logoutUser() {
+  // Remove this account's saved data from the device before ending the session.
+  forgetProfile();
+  try { await readCache.clear(); } catch { /* best effort */ }
   const { error } = await requireSupabase().auth.signOut({ scope: 'local' });
   if (error) throw error;
 }

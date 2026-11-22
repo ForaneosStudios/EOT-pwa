@@ -1,6 +1,7 @@
 import axios from 'axios';
 import { supabase } from './supabase.js';
 import { recordServerDate } from './offline/serverClock.js';
+import { readCache, readKey, staleData } from './offline/readCache.js';
 
 export const AUTH_REQUIRED_EVENT = 'eot:auth-required';
 
@@ -12,16 +13,34 @@ export const apiClient = axios.create({
   timeout: 15000,
 });
 
+// True for failures caused by having no connection (or the server being down), as opposed to the
+// server answering with a real error.
+export function isConnectionError(error) {
+  if (typeof navigator !== 'undefined' && navigator.onLine === false) return true;
+  if (error?.name === 'AuthRetryableFetchError') return true;
+  if (error?.isAxiosError || error?.config) return !error.response || error.response.status >= 500;
+  return error instanceof TypeError && /fetch|network/i.test(error.message || '');
+}
+
 apiClient.interceptors.request.use(async (config) => {
   if (supabase) {
     const { data, error } = await supabase.auth.getSession();
-    if (error) throw error;
-    if (data.session?.access_token) {
+    // Offline, an expired token cannot be renewed; send the request anyway so a read can still be
+    // answered from the saved data. Online, a session error is a real problem.
+    if (error && !isConnectionError(error)) throw error;
+    if (data?.session?.access_token) {
       config.headers.Authorization = `Bearer ${data.session.access_token}`;
     }
+    config.cacheOwner = data?.session?.user?.id || null;
   }
   return config;
 });
+
+// Only plain API reads are saved: not the health probe (absolute URL, empty base) nor password reset.
+function isCacheableRead(config) {
+  return Boolean(config) && (config.method || 'get').toLowerCase() === 'get' && config.cache !== false
+    && config.baseURL !== '' && typeof config.url === 'string' && !/^https?:/i.test(config.url) && !config.url.startsWith('/auth/');
+}
 
 async function refreshAccessToken() {
   refreshPromise ??= supabase.auth.refreshSession()
@@ -55,6 +74,16 @@ apiClient.interceptors.response.use(
   (response) => { recordServerClock(response); return response; },
   (error) => { recordServerClock(error?.response); return Promise.reject(error); },
 );
+
+// Save every successful read for the signed-in account (best effort, never blocks the response).
+apiClient.interceptors.response.use((response) => {
+  const { config } = response;
+  if (isCacheableRead(config) && !response.fromCache) {
+    staleData.markFresh();
+    readCache.put(config.cacheOwner, readKey(config.url, config.params), response.data).catch(() => {});
+  }
+  return response;
+});
 
 apiClient.interceptors.response.use(
   (response) => response,
@@ -91,6 +120,21 @@ apiClient.interceptors.response.use(
     }
   },
 );
+
+// Without connection, answer a read with the last saved copy (marked fromCache) instead of failing.
+apiClient.interceptors.response.use(undefined, async (error) => {
+  const { config } = error || {};
+  if (!isCacheableRead(config) || !isConnectionError(error)) throw error;
+  let entry;
+  try {
+    entry = await readCache.get(config.cacheOwner || readCache.owner(), readKey(config.url, config.params));
+  } catch {
+    entry = null;
+  }
+  if (!entry) throw error;
+  staleData.markStale(entry.savedAt);
+  return { data: entry.data, status: 200, statusText: 'OK', headers: {}, config, request: null, fromCache: true, cachedAt: entry.savedAt };
+});
 
 export function getApiErrorMessage(error, fallback = 'Ocurrió un error. Inténtalo de nuevo.') {
   if (error?.isAxiosError) {
