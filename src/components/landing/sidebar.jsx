@@ -16,8 +16,8 @@ function Sidebar({ navItems }) {
   const visibleNavItems = navItems.filter((item) => !item.adminOnly || auth?.user?.role === 'ADMIN');
 
   return <>
-    <aside className={`sticky top-0 z-40 flex w-full items-center border-b border-gold-dim bg-panel-deep px-4 py-3 md:static md:min-h-dvh md:flex-col md:items-stretch md:border-r md:border-b-0 md:px-4 md:py-6 md:transition-[width] md:duration-200 ${collapsed ? 'md:w-20' : 'md:w-64'} md:shrink-0`}>
-      <button type="button" onClick={() => setCollapsed((value) => !value)} aria-label={collapsed ? 'Expandir navegación' : 'Contraer navegación'} className="absolute -right-4 top-1/2 z-30 hidden -translate-y-1/2 rounded-full border border-gold-dim bg-panel-deep px-2 py-2 text-xs text-gold transition-colors hover:border-gold md:block">{collapsed ? '→' : '←'}</button>
+    <aside className={`sticky top-0 z-40 flex w-full items-center border-b border-gold-dim bg-panel-deep px-4 py-3 md:relative md:min-h-dvh md:flex-col md:items-stretch md:border-r md:border-b-0 md:px-4 md:py-6 md:transition-[width] md:duration-200 ${collapsed ? 'md:w-20' : 'md:w-64'} md:shrink-0`}>
+      <button type="button" onClick={() => setCollapsed((value) => !value)} aria-label={collapsed ? 'Expandir navegación' : 'Contraer navegación'} className="absolute -right-4 top-1/2 z-30 hidden -translate-y-1/2 md:top-[50dvh] rounded-full border border-gold-dim bg-panel-deep px-2 py-2 text-xs text-gold transition-colors hover:border-gold md:block">{collapsed ? '→' : '←'}</button>
       <div className="md:hidden"><Brand mobile /></div>
       <div className="hidden md:block"><Brand collapsed={collapsed} /></div>
       <button type="button" onClick={() => setMobileOpen(true)} aria-label="Abrir navegación" aria-expanded={mobileOpen} className="ml-auto border border-gold-dim px-3 py-2 text-gold md:hidden"><span className="text-lg" aria-hidden="true">☰</span></button>
