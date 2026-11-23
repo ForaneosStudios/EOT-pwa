@@ -89,6 +89,6 @@ it('offers to install the app only when the browser allows it', () => {
 it('keeps the install shortcut when the sidebar is collapsed', () => {
   const install = renderSidebar({ install: { canInstall: true, installing: false, install: vi.fn() } });
   fireEvent.click(screen.getByRole('button', { name: 'Contraer navegación' }));
-  fireEvent.click(screen.getByRole('button', { name: 'Instalar PWA' }));
+  fireEvent.click(screen.getByRole('button', { name: 'Instalar EOT Web' }));
   expect(install.install).toHaveBeenCalledOnce();
 });
