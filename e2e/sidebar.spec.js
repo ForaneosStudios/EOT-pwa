@@ -25,4 +25,19 @@ test.describe('desktop sidebar', () => {
     await expect.poll(async () => (await sidebar.boundingBox()).width).toBeLessThan(100);
     await onBorder(expand);
   });
+
+  test('the sidebar fills the screen and stays in place while the page scrolls', async ({ page, player }) => {
+    void player;
+    await page.goto('/app');
+    const sidebar = page.locator('aside').first();
+    const height = page.viewportSize().height;
+    await expect.poll(async () => Math.round((await sidebar.boundingBox()).height)).toBe(height);
+    await expect(page.getByText('El legado permanece')).toBeInViewport();
+
+    await page.mouse.wheel(0, 2000);
+    await expect.poll(() => page.evaluate(() => window.scrollY)).toBeGreaterThan(0);
+    expect(Math.round((await sidebar.boundingBox()).y)).toBe(0);
+    await expect(page.getByText('El legado permanece')).toBeInViewport();
+    await expect(page.getByRole('button', { name: 'Contraer navegación' })).toBeInViewport();
+  });
 });
