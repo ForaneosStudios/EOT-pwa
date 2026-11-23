@@ -17,9 +17,13 @@ const field = (label) => screen.getByLabelText(label);
 const type = (label, value) => fireEvent.change(field(label), { target: { value } });
 const submit = () => fireEvent.click(screen.getByRole('button', { name: 'Crear cuenta' }));
 
-function fillValid(overrides = {}) {
+const termsBox = () => screen.getByRole('checkbox', { name: /términos y condiciones/ });
+const privacyBox = () => screen.getByRole('checkbox', { name: /aviso de privacidad/ });
+
+function fillValid(overrides = {}, { accept = true } = {}) {
   const values = { 'Nombre de usuario': 'alma_01', 'Correo electrónico': 'alma@example.com', Contraseña: 'Secreta1', 'Confirmar contraseña': 'Secreta1', ...overrides };
   Object.entries(values).forEach(([label, value]) => type(label, value));
+  if (accept) { fireEvent.click(termsBox()); fireEvent.click(privacyBox()); }
 }
 
 beforeEach(() => {
@@ -112,4 +116,39 @@ it('blocks sign-up while offline and links back to sign-in', () => {
   expect(screen.getByText(/Necesitas internet para crear tu cuenta/)).toBeTruthy();
   fireEvent.click(screen.getByRole('button', { name: 'Iniciar sesión' }));
   expect(onOpenLogin).toHaveBeenCalledOnce();
+});
+
+it('requires accepting both the terms and the privacy notice before creating the account', async () => {
+  registerUser.mockResolvedValue({ userId: 'u9', username: 'alma_01' });
+  const { onLogin } = renderRegister();
+  fillValid({}, { accept: false });
+  expect(termsBox().checked).toBe(false);
+  expect(privacyBox().checked).toBe(false);
+
+  submit();
+  expect(screen.getByText('Debes aceptar los términos y condiciones.')).toBeTruthy();
+  expect(screen.getByText('Debes aceptar el aviso de privacidad.')).toBeTruthy();
+  expect(isUsernameAvailable).not.toHaveBeenCalled();
+
+  // Accepting only one is still not enough.
+  fireEvent.click(termsBox());
+  expect(screen.queryByText('Debes aceptar los términos y condiciones.')).toBeNull();
+  submit();
+  expect(screen.getByText('Debes aceptar el aviso de privacidad.')).toBeTruthy();
+  expect(registerUser).not.toHaveBeenCalled();
+
+  fireEvent.click(privacyBox());
+  submit();
+  await waitFor(() => expect(onLogin).toHaveBeenCalled());
+  expect(termsBox().checked).toBe(false); // the form resets after signing up
+});
+
+it('links to the full documents, which open in a new tab so the form is not lost', () => {
+  renderRegister();
+  const terms = screen.getByRole('link', { name: 'términos y condiciones' });
+  const privacy = screen.getByRole('link', { name: 'aviso de privacidad' });
+  expect(terms.getAttribute('href')).toBe('/terminos');
+  expect(privacy.getAttribute('href')).toBe('/privacidad');
+  expect(terms.getAttribute('target')).toBe('_blank');
+  expect(privacy.getAttribute('rel')).toContain('noreferrer');
 });

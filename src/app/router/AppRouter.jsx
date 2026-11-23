@@ -1,5 +1,6 @@
 import { Navigate, Route, Routes, useLocation, useNavigate } from 'react-router-dom';
 import ResetPasswordPage from '../../pages/resetPasswordPage.jsx';
+import LegalPage from '../../pages/legalPage.jsx';
 import { useAuth } from '../auth/authContext.js';
 import ProtectedRoute from './ProtectedRoute.jsx';
 import LandingPage from '../../pages/landingPage.jsx';
@@ -92,6 +93,8 @@ export default function AppRouter() {
     <Route path="/auth/reset-password" element={<CallbackRoute recovery />} />
     <Route path="/auth/forgot-password" element={<ForgotRoute />} />
     <Route path="/reset-password" element={<ResetPasswordRoute />} />
+    <Route path="/terminos" element={<LegalPage document="terminos" />} />
+    <Route path="/privacidad" element={<LegalPage document="privacidad" />} />
     <Route element={<ProtectedRoute />}><Route path="/app" element={<HomeRoute />} /><Route path="/achievements" element={<AchievementsRoute />} /><Route path="/chronicles" element={<ChroniclesPage />} /><Route path="/archive" element={<ArchivePage />} /><Route path="/forum" element={<ForumRoute />} /><Route path="/forum/:threadId" element={<ForumThreadRoute />} /><Route path="/profile" element={<ProfileRoute />} /></Route>
     <Route element={<ProtectedRoute roles={['ADMIN']} />}><Route path="/admin" element={<AdminRoute />} /></Route>
     <Route path="*" element={<Navigate to="/" replace />} />

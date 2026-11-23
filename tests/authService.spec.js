@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { parseAuthCallback } from '../src/services/authCallback.js';
 import * as auth from '../src/services/authService.js';
+import { LEGAL_VERSION } from '../src/content/legal.js';
 import { readCache } from '../src/services/offline/readCache.js';
 
 const { client, api } = vi.hoisted(() => ({
@@ -22,7 +23,10 @@ describe('authentication service', () => {
     api.get.mockRejectedValue({ response: { status: 403 } });
     api.post.mockResolvedValue({ data: { username: 'Hero', role: 'USER' } });
     expect(await auth.registerUser({ userName: ' Hero ', email: ' hero@example.com ', password: 'Password1' })).toEqual({ username: 'Hero', role: 'USER' });
-    expect(client.auth.signUp).toHaveBeenCalledWith({ email: 'hero@example.com', password: 'Password1', options: { data: { username: 'Hero' } } });
+    expect(client.auth.signUp).toHaveBeenCalledWith({
+      email: 'hero@example.com', password: 'Password1',
+      options: { data: { username: 'Hero', terms_version: LEGAL_VERSION, terms_accepted_at: expect.stringMatching(/^\d{4}-\d{2}-\d{2}T/) } },
+    });
     expect(api.post).toHaveBeenCalledWith('/users/me/profile', { username: 'Hero' });
   });
 

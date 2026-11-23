@@ -7,6 +7,8 @@ import { useOnlineStatus } from '../hooks/useOnlineStatus.js';
 import { PASSWORD_HELP, passwordError } from '../services/passwordRules.js';
 
 const initialValues = { userName: '', email: '', password: '', passwordConfirmation: '' };
+const initialConsent = { terms: false, privacy: false };
+const consentErrors = { terms: 'Debes aceptar los términos y condiciones.', privacy: 'Debes aceptar el aviso de privacidad.' };
 
 const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
@@ -47,6 +49,8 @@ function RegisterPage({ onLogin, onOpenLogin }) {
   const [formValues, setFormValues] = useState(initialValues);
   const [formErrors, setFormErrors] = useState({});
   const [touchedFields, setTouchedFields] = useState({});
+  const [consent, setConsent] = useState(initialConsent);
+  const [consentTouched, setConsentTouched] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState('');
   const isOnline = useOnlineStatus();
@@ -74,7 +78,9 @@ function RegisterPage({ onLogin, onOpenLogin }) {
     setFormErrors(nextErrors);
     setTouchedFields({ userName: true, email: true, password: true, passwordConfirmation: true });
 
-    if (Object.values(nextErrors).some(Boolean) || !isOnline) return;
+    setConsentTouched(true);
+
+    if (Object.values(nextErrors).some(Boolean) || !consent.terms || !consent.privacy || !isOnline) return;
 
     setIsSubmitting(true);
     setSubmitError('');
@@ -85,6 +91,8 @@ function RegisterPage({ onLogin, onOpenLogin }) {
       }
       onLogin(await registerUser(formValues));
       setFormValues(initialValues);
+      setConsent(initialConsent);
+      setConsentTouched(false);
       setTouchedFields({});
     } catch (error) {
       setSubmitError(getApiErrorMessage(error, 'No se pudo crear la cuenta.'));
@@ -123,6 +131,24 @@ function RegisterPage({ onLogin, onOpenLogin }) {
             <FormField label="Correo electrónico" type="email" autoComplete="email" helpText="Usa un correo válido y único. Lo verificaremos al crear tu cuenta." {...getFieldProps('email')} />
             <FormField label="Contraseña" type="password" autoComplete="new-password" showPasswordToggle helpText={PASSWORD_HELP} {...getFieldProps('password')} />
             <FormField label="Confirmar contraseña" type="password" autoComplete="new-password" showPasswordToggle helpText="Escribe de nuevo la misma contraseña." {...getFieldProps('passwordConfirmation')} />
+
+            <fieldset className="flex flex-col gap-3 border-0 p-0">
+              <legend className="sr-only">Aceptación de documentos legales</legend>
+              {[
+                ['terms', 'Acepto los', 'términos y condiciones', '/terminos'],
+                ['privacy', 'He leído y acepto el', 'aviso de privacidad', '/privacidad'],
+              ].map(([name, before, linkText, to]) => {
+                const error = consentTouched && !consent[name] ? consentErrors[name] : '';
+                return <div key={name}>
+                  <label className="flex min-h-10 cursor-pointer items-center gap-3 font-body text-sm text-parchment">
+                    <input type="checkbox" checked={consent[name]} aria-invalid={Boolean(error)} aria-describedby={error ? `${name}-consent-error` : undefined}
+                      onChange={(event) => setConsent((current) => ({ ...current, [name]: event.target.checked }))} className="size-10 shrink-0 cursor-pointer appearance-none border border-gold-dim bg-panel-deep p-2.5 text-base checked:border-gold checked:bg-gold checked:bg-clip-content focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gold" />
+                    <span>{before} <Link to={to} target="_blank" rel="noreferrer" className="inline-block py-3 text-gold underline">{linkText}</Link></span>
+                  </label>
+                  {error && <p id={`${name}-consent-error`} className="mt-1 font-body text-xs text-error">{error}</p>}
+                </div>;
+              })}
+            </fieldset>
 
             <button
               type="submit"
