@@ -2,6 +2,7 @@ import { apiClient, isConnectionError } from './apiClient.js';
 import { readCache } from './offline/readCache.js';
 import { requireSupabase, supabase } from './supabase.js';
 import { parseAuthCallback } from './authCallback.js';
+import { LEGAL_VERSION } from '../content/legal.js';
 
 const confirmationUrl = () => `${window.location.origin}/auth/confirm`;
 
@@ -32,7 +33,8 @@ export async function registerUser({ userName, email, password }) {
   const { data, error } = await client.auth.signUp({
     email: email.trim(),
     password,
-    options: { data: { username: userName.trim() } },
+    // The sign-up form only submits after both boxes are checked: keep when and which version was accepted.
+    options: { data: { username: userName.trim(), terms_version: LEGAL_VERSION, terms_accepted_at: new Date().toISOString() } },
   });
   if (error) throw error;
   if (!data.session) {

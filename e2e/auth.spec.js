@@ -130,6 +130,10 @@ test.describe('sign up', () => {
     const data = { 'Nombre de usuario': 'Nueva_Alma', 'Correo electrónico': 'nueva@example.com', 'Contraseña': 'Secreta1', 'Confirmar contraseña': 'Secreta1', ...values };
     for (const [label, value] of Object.entries(data)) await page.getByLabel(label, { exact: true }).fill(value);
   };
+  const acceptLegal = async (page) => {
+    await page.getByRole('checkbox', { name: /términos y condiciones/ }).check();
+    await page.getByRole('checkbox', { name: /aviso de privacidad/ }).check();
+  };
 
   test('validates each field as the player leaves it', async ({ page, backend }) => {
     await page.goto('/register');
@@ -149,6 +153,7 @@ test.describe('sign up', () => {
     const backend = await mockBackend(context, { takenUsernames: ['Nueva_Alma'] });
     await page.goto('/register');
     await fillRegister(page);
+    await acceptLegal(page);
     await page.getByRole('button', { name: 'Crear cuenta' }).click();
     await expect(page.getByText('Este nombre de usuario ya está en uso.')).toBeVisible();
     expect(backend.calls('GET', '/users/availability')).toHaveLength(1);
@@ -165,8 +170,46 @@ test.describe('sign up', () => {
   test('creates the account and signs the new player in', async ({ page, backend }) => {
     await page.goto('/register');
     await fillRegister(page);
+    await acceptLegal(page);
     await page.getByRole('button', { name: 'Crear cuenta' }).click();
     await expect(page).toHaveURL(/\/app$/);
     await expect.poll(() => backend.calls('GET', '/users/me').length).toBeGreaterThan(0);
+  });
+
+  test('cannot create the account until both documents are accepted, and they can be read first', async ({ page, backend, context }) => {
+    await page.goto('/register');
+    await fillRegister(page);
+    await page.getByRole('button', { name: 'Crear cuenta' }).click();
+    await expect(page.getByText('Debes aceptar los términos y condiciones.')).toBeVisible();
+    await expect(page.getByText('Debes aceptar el aviso de privacidad.')).toBeVisible();
+    expect(backend.calls('GET', '/users/availability')).toHaveLength(0);
+
+    // The documents open in a new tab, so the filled form is not lost.
+    const [terms] = await Promise.all([context.waitForEvent('page'), page.getByRole('link', { name: 'términos y condiciones' }).click()]);
+    await expect(terms).toHaveURL(/\/terminos$/);
+    await expect(terms.getByRole('heading', { level: 1, name: 'Términos y condiciones' })).toBeVisible();
+    await terms.close();
+    await expect(page.getByLabel('Nombre de usuario')).toHaveValue('Nueva_Alma');
+  });
+});
+
+test.describe('legal documents', () => {
+  test('are public and reachable from the landing footer', async ({ page }) => {
+    await page.goto('/');
+    await page.getByRole('link', { name: 'Términos y condiciones' }).click();
+    await expect(page).toHaveURL(/\/terminos$/);
+    await expect(page.getByRole('heading', { level: 1, name: 'Términos y condiciones' })).toBeVisible();
+    await page.getByRole('link', { name: 'Aviso de privacidad' }).click();
+    await expect(page).toHaveURL(/\/privacidad$/);
+    await expect(page.getByRole('heading', { name: '6. Tus derechos (ARCO)' })).toBeVisible();
+  });
+
+  test('can be read again from the sidebar once signed in', async ({ page, player }) => {
+    void player;
+    await page.goto('/app');
+    await page.getByRole('link', { name: 'Aviso de privacidad' }).click();
+    await expect(page.getByRole('heading', { level: 1, name: 'Aviso de privacidad' })).toBeVisible();
+    await page.getByRole('button', { name: '← Volver' }).click();
+    await expect(page).toHaveURL(/\/app$/);
   });
 });
