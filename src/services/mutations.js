@@ -32,6 +32,8 @@ export const adminMutations = {
     send('DELETE', `/users/${account.userId}`, undefined, `Eliminar cuenta ${account.username}`, { kind: 'admin:user:delete' }),
   deleteThread: (thread) => forumMutations.deleteThread(thread.threadId, thread.title),
   lockThread: (thread, locked) => forumMutations.lockThread(thread.threadId, locked),
+  removePhoto: (account) =>
+    send('DELETE', `/users/${account.userId}/profile-photo`, undefined, `Quitar foto de ${account.username}`, { kind: 'admin:user:photo' }),
   createAchievement: (payload) =>
     send('POST', '/achievements', payload, `Nuevo logro: ${payload.achName}`, { kind: 'admin:achievement:create' }),
   createCategory: (payload) =>
@@ -44,4 +46,9 @@ export const adminMutations = {
 export const profileMutations = {
   updateAvatar: (profilePicture) =>
     send('PATCH', '/users/me/profile-picture', { profilePicture }, 'Cambiar retrato', { kind: 'profile:avatar' }),
+  // `image` is a JPEG data URL; the consent was given in the capture dialog right before sending.
+  updatePhoto: (image) =>
+    send('PUT', '/users/me/profile-photo', { image, consent: true }, 'Cambiar foto de perfil', { kind: 'profile:avatar' }),
+  removePhoto: () =>
+    send('DELETE', '/users/me/profile-photo', undefined, 'Quitar foto de perfil', { kind: 'profile:avatar' }),
 };

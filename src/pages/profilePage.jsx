@@ -11,16 +11,14 @@ import { passwordError } from '../services/passwordRules.js';
 import { profileMutations } from '../services/mutations.js';
 import { QUEUED_MESSAGE } from '../services/offline/messages.js';
 import { ProfileAchievementsSkeleton } from '../components/feedback/contentSkeletons.jsx';
+import CameraCapture from '../components/profile/CameraCapture.jsx';
+import UserAvatar from '../components/profile/UserAvatar.jsx';
 
 const avatars = Array.from({ length: 6 }, (_, index) => `/avatars/avatar-${index + 1}.svg`);
 const passwordIsValid = (value) => !passwordError(value);
 const formatDate = (value) => value ? new Intl.DateTimeFormat('es-MX', { dateStyle: 'long' }).format(new Date(value)) : 'Fecha no disponible';
 
-function ProfileAvatar({ src, username, className = '' }) {
-  return <div className={`flex shrink-0 items-center justify-center overflow-hidden border border-gold bg-crimson/25 ${className}`}>
-    {src ? <img src={src} alt={`Avatar de ${username}`} className="h-full w-full object-cover" /> : <span aria-hidden="true" className="font-display text-4xl text-gold">♛</span>}
-  </div>;
-}
+const hasPhoto = (picture) => /^https?:\/\//.test(picture || '');
 
 export default function ProfilePage({ user, onLogout, onUserUpdate, message }) {
   const [state, setState] = useState({ loading: true, achievements: [], error: '' });
@@ -29,8 +27,17 @@ export default function ProfilePage({ user, onLogout, onUserUpdate, message }) {
   useLiveRefresh(['achievements'], useCallback(() => setAttempt((value) => value + 1), []));
   const [selectedAvatar, setSelectedAvatar] = useState(user.profilePicture || avatars[0]);
   const [avatarStatus, setAvatarStatus] = useState({ saving: false, message: '', error: '' });
+  const [cameraOpen, setCameraOpen] = useState(false);
+  const [photoStatus, setPhotoStatus] = useState({ saving: false, message: '', error: '' });
   const [passwords, setPasswords] = useState({ password: '', confirmation: '' });
   const [passwordStatus, setPasswordStatus] = useState({ saving: false, message: '', error: '' });
+
+  // The portrait can change from outside this page (a queued change that finally reached the server).
+  const [shownPicture, setShownPicture] = useState(user.profilePicture);
+  if (user.profilePicture !== shownPicture) {
+    setShownPicture(user.profilePicture);
+    setSelectedAvatar(user.profilePicture || avatars[0]);
+  }
 
   useEffect(() => {
     const controller = new AbortController();
@@ -58,6 +65,39 @@ export default function ProfilePage({ user, onLogout, onUserUpdate, message }) {
       setAvatarStatus({ saving: false, message: 'Retrato actualizado.', error: '' });
     } catch (error) {
       setAvatarStatus({ saving: false, message: '', error: getApiErrorMessage(error, 'No se pudo actualizar el retrato.') });
+    }
+  }
+
+  async function savePhoto(image) {
+    setPhotoStatus({ saving: true, message: '', error: '' });
+    try {
+      const result = await profileMutations.updatePhoto(image);
+      if (result.status === 'queued') {
+        setCameraOpen(false);
+        setPhotoStatus({ saving: false, message: `Tu foto se guardará al recuperar la conexión. ${QUEUED_MESSAGE}`, error: '' });
+        return;
+      }
+      onUserUpdate(result.data);
+      setCameraOpen(false);
+      setPhotoStatus({ saving: false, message: 'Foto de perfil actualizada.', error: '' });
+    } catch (error) {
+      setPhotoStatus({ saving: false, message: '', error: getApiErrorMessage(error, 'No se pudo guardar la foto.') });
+    }
+  }
+
+  async function removePhoto() {
+    if (photoStatus.saving) return;
+    setPhotoStatus({ saving: true, message: '', error: '' });
+    try {
+      const result = await profileMutations.removePhoto();
+      if (result.status === 'queued') {
+        setPhotoStatus({ saving: false, message: `Tu foto se quitará al recuperar la conexión. ${QUEUED_MESSAGE}`, error: '' });
+        return;
+      }
+      onUserUpdate(result.data);
+      setPhotoStatus({ saving: false, message: 'Tu foto se quitó.', error: '' });
+    } catch (error) {
+      setPhotoStatus({ saving: false, message: '', error: getApiErrorMessage(error, 'No se pudo quitar la foto.') });
     }
   }
 
@@ -93,7 +133,7 @@ export default function ProfilePage({ user, onLogout, onUserUpdate, message }) {
 
         <section className="mt-8 border border-gold-dim bg-panel p-6 sm:p-8">
           <div className="flex flex-col gap-6 sm:flex-row sm:items-center">
-            <ProfileAvatar src={user.profilePicture || avatars[0]} username={user.username} className="h-28 w-28" />
+            <UserAvatar src={user.profilePicture || avatars[0]} username={user.username} className="h-28 w-28 border-gold" />
             <div><h2 className="font-display text-xl uppercase text-parchment">{user.username}</h2><p className="mt-3 text-muted">Jugador de Echoes of the Throne</p>{state.loading ? <output className="mt-4 block text-gold">Cargando logros...</output> : <p className="mt-4 font-display uppercase text-gold">{unlockedAchievements.length} logros desbloqueados</p>}</div>
           </div>
           <dl className="mt-7 grid gap-4 border-t border-gold-dim pt-6 text-sm sm:grid-cols-2"><div><dt className="font-display text-xs uppercase text-gold">Correo electrónico</dt><dd className="mt-1 break-all text-parchment">{user.email || 'No disponible'}</dd></div><div><dt className="font-display text-xs uppercase text-gold">Miembro desde</dt><dd className="mt-1 text-parchment">{formatDate(user.createdAt)}</dd></div></dl>
@@ -104,6 +144,16 @@ export default function ProfilePage({ user, onLogout, onUserUpdate, message }) {
           <div className="mt-5 grid grid-cols-3 gap-3 sm:grid-cols-6">{avatars.map((avatar, index) => <button key={avatar} type="button" onClick={() => { setSelectedAvatar(avatar); setAvatarStatus({ saving: false, message: '', error: '' }); }} aria-label={`Seleccionar silueta ${index + 1}`} aria-pressed={selectedAvatar === avatar} className={`aspect-square overflow-hidden border p-1 transition-colors ${selectedAvatar === avatar ? 'border-crimson bg-crimson/20' : 'border-gold-dim hover:border-gold'}`}><img src={avatar} alt="" className="h-full w-full" /></button>)}</div>
           <button type="button" disabled={avatarStatus.saving || selectedAvatar === user.profilePicture} onClick={saveAvatar} className="mt-5 border border-gold bg-crimson px-5 py-3 font-display text-xs uppercase text-parchment hover:bg-crimson-light disabled:opacity-60">{avatarStatus.saving ? 'Guardando...' : 'Guardar retrato'}</button>
           {avatarStatus.message && <p role="status" className="mt-3 text-success">{avatarStatus.message}</p>}{avatarStatus.error && <p role="alert" className="mt-3 text-error">{avatarStatus.error}</p>}
+          <div className="mt-6 border-t border-gold-dim pt-5">
+            <h3 className="font-display text-sm uppercase text-parchment">O usa tu cámara</h3>
+            <p className="mt-2 text-sm text-muted">Tómate una foto para usarla como retrato. Es opcional y será visible para otros jugadores y visitantes.</p>
+            <div className="mt-4 flex flex-wrap gap-3">
+              <button type="button" onClick={() => { setPhotoStatus({ saving: false, message: '', error: '' }); setCameraOpen(true); }} className="border border-gold px-5 py-3 font-display text-xs uppercase text-gold hover:bg-gold/10">Tomar foto con la cámara</button>
+              {hasPhoto(user.profilePicture) && <button type="button" disabled={photoStatus.saving} onClick={() => void removePhoto()} className="border border-gold-dim px-5 py-3 font-display text-xs uppercase text-error hover:border-error disabled:opacity-60">Quitar mi foto</button>}
+            </div>
+            {photoStatus.message && <p role="status" className="mt-3 text-success">{photoStatus.message}</p>}
+            {!cameraOpen && photoStatus.error && <p role="alert" className="mt-3 text-error">{photoStatus.error}</p>}
+          </div>
         </section>
 
         <section className="mt-6 border border-gold-dim bg-panel p-6 sm:p-7" aria-labelledby="password-title">
@@ -119,5 +169,6 @@ export default function ProfilePage({ user, onLogout, onUserUpdate, message }) {
         </section>
       </div>
     </main>
+    {cameraOpen && <CameraCapture onConfirm={savePhoto} onClose={() => setCameraOpen(false)} saving={photoStatus.saving} error={photoStatus.error} />}
   </div>;
 }
