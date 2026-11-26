@@ -12,7 +12,7 @@ vi.mock('../src/services/apiClient.js', () => ({
 }));
 vi.mock('../src/services/mutations.js', () => ({
   adminMutations: {
-    deleteUser: vi.fn(), deleteThread: vi.fn(), lockThread: vi.fn(),
+    deleteUser: vi.fn(), deleteThread: vi.fn(), lockThread: vi.fn(), removePhoto: vi.fn(),
     createAchievement: vi.fn(), createCategory: vi.fn(), deleteCategory: vi.fn(),
   },
 }));
@@ -46,6 +46,20 @@ it('deletes an account and reloads the console', async () => {
   expect(await screen.findByText('La cuenta fue eliminada.')).toBeTruthy();
   expect(adminMutations.deleteUser).toHaveBeenCalledWith(expect.objectContaining({ userId: 'u2' }));
   expect(apiClient.get.mock.calls.filter(([url]) => url === '/users')).toHaveLength(2);
+});
+
+it('lets an administrator remove the photo of an account that has one', async () => {
+  const accounts = [admin, { userId: 'u2', username: 'Kai', email: 'kai@example.com', role: 'USER', createdAt: '2026-11-01T00:00:00Z', profilePicture: 'https://project.supabase.co/storage/v1/object/public/profile-photos/kai.jpg?v=1' },
+    { userId: 'u3', username: 'Mia', email: 'mia@example.com', role: 'USER', createdAt: '2026-11-02T00:00:00Z', profilePicture: '/avatars/avatar-2.svg' }];
+  apiClient.get.mockImplementation((url) => Promise.resolve({ data: url === '/users' ? accounts : data[url] }));
+  adminMutations.removePhoto.mockResolvedValue(sent);
+  renderAdmin();
+  fireEvent.click(await screen.findByRole('tab', { name: 'Cuentas' }));
+  expect(await screen.findAllByRole('button', { name: 'Quitar foto' })).toHaveLength(1);
+  fireEvent.click(screen.getByRole('button', { name: 'Quitar foto' }));
+  expect(await screen.findByText('La foto fue eliminada.')).toBeTruthy();
+  expect(adminMutations.removePhoto).toHaveBeenCalledWith(expect.objectContaining({ userId: 'u2' }));
+  expect(window.confirm).toHaveBeenCalledWith(expect.stringContaining('Kai'));
 });
 
 it('queues forum moderation while offline without reloading', async () => {

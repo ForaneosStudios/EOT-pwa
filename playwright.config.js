@@ -22,6 +22,8 @@ export default defineConfig({
     // The mock answers requests itself; a service worker would hide them from it.
     // The PWA specs turn it back on explicitly.
     serviceWorkers: 'block',
+    // Chromium's fake camera lets the profile-photo flow run for real, without hardware.
+    launchOptions: { args: ['--use-fake-device-for-media-stream', '--use-fake-ui-for-media-stream'] },
     trace: 'retain-on-failure',
     screenshot: 'only-on-failure',
   },

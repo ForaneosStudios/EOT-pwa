@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { apiClient } from '../../services/apiClient.js';
 import { useLiveRefresh } from '../../app/live/liveContext.js';
 import { formatRunTime } from '../../services/runTime.js';
+import UserAvatar from '../profile/UserAvatar.jsx';
 
 const validEntry = (entry) => entry && typeof entry.username === 'string' && Number.isFinite(entry.bestTimeMs);
 
@@ -43,6 +44,7 @@ export default function RecordsPanel({ user }) {
           const mine = entry.username === user?.username;
           return <li key={`${entry.rank}-${entry.username}`} className={`flex items-center gap-3 py-2 text-sm ${mine ? 'text-gold' : 'text-parchment'}`}>
             <span className="w-6 text-right font-display text-muted">{entry.rank}</span>
+            <UserAvatar src={entry.profilePicture} username={entry.username} className="h-7 w-7" />
             <span className="min-w-0 flex-1 truncate">{entry.username}{mine && ' (tú)'}</span>
             <span className="font-display tabular-nums">{formatRunTime(entry.bestTimeMs)}</span>
           </li>;

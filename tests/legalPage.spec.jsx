@@ -17,7 +17,7 @@ const renderAt = (path) => render(<MemoryRouter initialEntries={['/', path]} ini
 it('shows the terms and links to the privacy notice', () => {
   renderAt('/terminos');
   expect(screen.getByRole('heading', { level: 1, name: 'Términos y condiciones' })).toBeTruthy();
-  expect(screen.getByText(/Versión del 22 de noviembre de 2026/)).toBeTruthy();
+  expect(screen.getByText(/Versión del 26 de noviembre de 2026/)).toBeTruthy();
   expect(screen.getByRole('heading', { name: '6. Edad' })).toBeTruthy();
   fireEvent.click(screen.getByRole('link', { name: 'Aviso de privacidad' }));
   expect(screen.getByRole('heading', { level: 1, name: 'Aviso de privacidad' })).toBeTruthy();
