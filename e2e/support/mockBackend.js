@@ -191,6 +191,12 @@ export async function mockBackend(context, { user = PLAYER, password = 'Secreta1
       state.posts = state.posts.filter((p) => p.postId !== postMatch[1]);
       return { status: 204, body: undefined };
     }
+    if (method === 'PUT' && path === '/users/me/profile-photo') {
+      if (record.body.consent !== true || !String(record.body.image || '').startsWith('data:image/jpeg;base64,')) return ok({ status: 400, code: 'VALIDATION_ERROR', message: 'Debes aceptar que tu foto sea visible para otros jugadores' }, 400);
+      state.user = { ...state.user, profilePicture: `https://storage.test/profile-photos/${state.user.userId}.jpg?v=${state.requests.length}` };
+      return ok(state.user);
+    }
+    if (method === 'DELETE' && path === '/users/me/profile-photo') { state.user = { ...state.user, profilePicture: null }; return ok(state.user); }
     if (method === 'PATCH' && path === '/users/me/profile-picture') { state.user = { ...state.user, profilePicture: record.body.profilePicture }; return ok(state.user); }
     if (method === 'GET' && ['/users', '/achievements', '/categories'].includes(path)) return ok([]);
     return ok({ status: 404, code: 'RESOURCE_NOT_FOUND', message: `Sin simulación para ${method} ${path}` }, 404);
